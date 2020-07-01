@@ -1,0 +1,7 @@
+!!python/object:__main__.Configuration
+repositoryUrl: 'https://github.com/dotnet/core'
+repositoryShortname: 'dotnet/core'
+repositoryPath: 'C:\Repos\dotnet.core'
+analysisOutputPath: 'C:\Repos\analysisOutput'
+aliasPath: 'C:\Repos\analysisOutput\aliases\dotnet.core.yml'
+aliasSimilarityMaxDistance: 0.25

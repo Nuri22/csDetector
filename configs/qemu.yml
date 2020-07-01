@@ -1,0 +1,7 @@
+!!python/object:__main__.Configuration
+repositoryUrl: 'https://github.com/qemu/qemu'
+repositoryShortname: 'qemu/qemu'
+repositoryPath: 'D:\Repos\qemu'
+analysisOutputPath: 'D:\Repos\analysisOutput'
+aliasPath: 'D:\Repos\DevNetworkPython\aliases\qemu.yml'
+aliasSimilarityMaxDistance: 0.25

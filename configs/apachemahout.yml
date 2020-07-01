@@ -1,0 +1,7 @@
+!!python/object:__main__.Configuration
+repositoryUrl: 'https://github.com/apache/mahout'
+repositoryShortname: 'apache/mahout'
+repositoryPath: 'D:\Repos\apachemahout'
+analysisOutputPath: 'D:\Repos\analysisOutput'
+aliasPath: 'D:\Repos\DevNetworkPython\aliases\apachemahout.yml'
+aliasSimilarityMaxDistance: 0.25
