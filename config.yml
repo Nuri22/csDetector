@@ -4,4 +4,7 @@ repositoryShortname: 'dotnet/core'
 repositoryPath: 'C:\Repos\dotnet.core'
 analysisOutputPath: 'C:\Repos\analysisOutput\dotnet.core'
 aliasPath: 'C:\Repos\analysisOutput\aliases\dotnet.core.yml'
-aliasSimilarityMaxDistance: 0.25
+aliasSimilarityMaxDistance: 0.75
+sentiStrengthJarPath: 'C:/Users/nouri/smells_tool/run_tool/folder2/gitlab_tool/SentiStrength.jar'
+sentiStrengthDataPath: 'C:/Users/nouri/smells_tool/run_tool/folder2/gitlab_tool/SentiStrength_Data/'
+
