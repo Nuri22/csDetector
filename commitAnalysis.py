@@ -7,7 +7,8 @@ from progress.bar import Bar
 from datetime import datetime
 from utils import authorIdExtractor
 from statsAnalysis import outputStatistics
-
+from sentistrength import PySentiStr
+from git.objects.commit import Commit
 
 def commitAnalysis(commits: List[git.Commit], outputDir: str):
 
@@ -60,6 +61,9 @@ def commitAnalysis(commits: List[git.Commit], outputDir: str):
         # check if commit was between 9 and 5
         if not commit.author_tz_offset == 0 and time.hour >= 9 and time.hour <= 17:
             authorInfo["sponsoredCommitCount"] += 1
+			
+	print("Analyzing commit message sentiment")
+    sentimentResult = senti.getSentiment(commitMessages) 
 
     print("Analyzing authors")
     sponsoredAuthorCount = 0
@@ -149,4 +153,7 @@ def commitAnalysis(commits: List[git.Commit], outputDir: str):
         outputDir,
     )
 
+    outputStatistics(
+        sentimentResult, "CommitMessageSentiment", outputDir,
+    )
     return authorInfoDict

@@ -39,4 +39,5 @@ def replaceAll(commits, aliases):
             yield copy
         else:
             copy.author.email = author
+			
             yield commit
