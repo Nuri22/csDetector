@@ -63,7 +63,13 @@ def commitAnalysis(commits: List[git.Commit], outputDir: str):
             authorInfo["sponsoredCommitCount"] += 1
 			
 	print("Analyzing commit message sentiment")
-    sentimentResult = senti.getSentiment(commitMessages) 
+    sentimentResult = senti.getSentiment(commitMessages)
+    commitMessageSentimentsPositive = sum(
+        1 for _ in filter(lambda value: value >= 1, sentimentResult)
+    )
+    commitMessageSentimentsNegative = sum(
+        1 for _ in filter(lambda value: value <= -1, sentimentResult)
+    )	
 
     print("Analyzing authors")
     sponsoredAuthorCount = 0
@@ -128,6 +134,8 @@ def commitAnalysis(commits: List[git.Commit], outputDir: str):
         w.writerow(["SponsoredAuthorCount", sponsoredAuthorCount])
         w.writerow(["PercentageSponsoredAuthors", percentageSponsoredAuthors])
         w.writerow(["TimezoneCount", len([*timezoneInfoDict])])
+		w.writerow(["CommitMessageSentimentsPositive", commitMessageSentimentsPositive])
+        w.writerow(["CommitMessageSentimentsNegative", commitMessageSentimentsNegative])
 
     outputStatistics(
         [author["activeDays"] for login, author in authorInfoDict.items()],
