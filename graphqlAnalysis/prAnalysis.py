@@ -19,12 +19,20 @@ def prAnalysis(
 
     # analyze sentiments
     commentSentiments = senti.getSentiment(prComments)
+	commentSentimentsPositive = sum(
+        1 for _ in filter(lambda value: value >= 1, commentSentiments)
+    )
+    commentSentimentsNegative = sum(
+        1 for _ in filter(lambda value: value <= -1, commentSentiments)
+    )
 
     print("Writing results")
     with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["NumberPRs", prCount])
         w.writerow(["NumberPRComments", prCount])
+		w.writerow(["PRCommentsPositive", commentSentimentsPositive])
+        w.writerow(["PRCommentsNegative", commentSentimentsNegative])
        
 
     with open(os.path.join(outputDir, "PRCommits.csv"), "a", newline="") as f:
