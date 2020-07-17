@@ -4,7 +4,6 @@ import statsAnalysis as stats
 import sentistrength
 import graphqlAnalysis.graphqlAnalysisHelper as gql
 
-
 def prAnalysis(
     pat: str, senti: sentistrength.PySentiStr, repoShortName: str, outputDir: str
 ):
