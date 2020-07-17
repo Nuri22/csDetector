@@ -8,7 +8,6 @@ import graphqlAnalysis.graphqlAnalysisHelper as gql
 def prAnalysis(
     pat: str, senti: sentistrength.PySentiStr, repoShortName: str, outputDir: str
 ):
-
     # split repo by owner and name
     owner, name = gql.splitRepoName(repoShortName)
 
