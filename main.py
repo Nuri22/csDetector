@@ -2,6 +2,7 @@ import sys, getopt, os, subprocess, shutil
 import git
 import yaml
 import pkg_resources
+import sentistrength
 
 from configuration import Configuration
 from repoLoader import getRepo
@@ -9,8 +10,10 @@ from aliasWorker import replaceAliases
 from commitAnalysis import commitAnalysis
 from centralityAnalysis import centralityAnalysis
 from tagAnalysis import tagAnalysis
-from graphqlAnalysis import graphqlAnalysis
 from devAnalysis import devAnalysis
+from graphqlAnalysis.releaseAnalysis import releaseAnalysis
+from graphqlAnalysis.prAnalysis import prAnalysis
+from graphqlAnalysis.issueAnalysis import issueAnalysis
 
 FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
 
@@ -44,6 +47,7 @@ def main(argv):
             "progress",
             "strsimpy",
             "python-dateutil",
+            "sentistrength",
         }
         installed = {pkg for pkg in pkg_resources.working_set.by_key}
         missing = required - installed
@@ -96,14 +100,32 @@ def main(argv):
         # handle aliases
         commits = list(replaceAliases(repo.iter_commits(), config.aliasPath))
 
+        # setup sentiment analysis
+        senti = sentistrength.PySentiStr()
+        senti.setSentiStrengthPath(config.sentiStrengthJarPath)
+        senti.setSentiStrengthLanguageFolderPath(config.sentiStrengthDataPath)
+
         # run analysis
         tagAnalysis(repo, config.analysisOutputPath)
-        authorInfoDict = commitAnalysis(commits, config.analysisOutputPath)
+
+        authorInfoDict = commitAnalysis(senti, commits, config.analysisOutputPath)
+
         centralityAnalysis(repo, commits, config.analysisOutputPath)
-        issueOrPrDevs = graphqlAnalysis(
-            pat, config.repositoryShortname, config.analysisOutputPath
+
+        releaseAnalysis(
+            commits, pat, config.repositoryShortname, config.analysisOutputPath
         )
-        devAnalysis(authorInfoDict, issueOrPrDevs, config.analysisOutputPath)
+
+        prParticipants = prAnalysis(
+            pat, senti, config.repositoryShortname, config.analysisOutputPath
+        )
+
+        issueParticipants = issueAnalysis(
+            pat, senti, config.repositoryShortname, config.analysisOutputPath
+        )
+
+        allParticipants = issueParticipants.union(prParticipants)
+        devAnalysis(authorInfoDict, allParticipants, config.analysisOutputPath)
 
         # open output directory
         explore(config.analysisOutputPath)
