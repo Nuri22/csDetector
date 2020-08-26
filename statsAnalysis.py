@@ -2,7 +2,6 @@ from statistics import *
 import os
 import csv
 
-
 def outputStatistics(data: list, metric: str, outputDir: str):
 
     # get non-zero data following the (+1 data / -1 result) approach
@@ -15,7 +14,6 @@ def outputStatistics(data: list, metric: str, outputDir: str):
         
         outputValue(w, metric, "pstdev", pstdev(data))
         
-
 
 def outputValue(w, metric: str, name: str, value, reduceByOne=False):
     name = "{0}_{1}".format(metric, name)
