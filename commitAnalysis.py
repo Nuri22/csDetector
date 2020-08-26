@@ -10,7 +10,7 @@ from statsAnalysis import outputStatistics
 from sentistrength import PySentiStr
 from git.objects.commit import Commit
 
-def commitAnalysis(commits: List[git.Commit], outputDir: str):
+def commitAnalysis(senti: PySentiStr, commits: List[git.Commit], outputDir: str):
 
     authorInfoDict = {}
     timezoneInfoDict = {}
@@ -18,6 +18,9 @@ def commitAnalysis(commits: List[git.Commit], outputDir: str):
 
     # traverse all commits
     print("Analyzing commits")
+
+    commitMessages = []
+    commit: Commit
     for commit in Bar("Processing").iter(commits):
 
         # extract info
@@ -30,8 +33,9 @@ def commitAnalysis(commits: List[git.Commit], outputDir: str):
             timezone, dict(commitCount=0, authors=set())
         )
 
-        # save author
+        # save info
         timezoneInfo["authors"].add(author)
+        commitMessages.append(commit.message)
 
         # increase commit count
         timezoneInfo["commitCount"] += 1
@@ -61,15 +65,20 @@ def commitAnalysis(commits: List[git.Commit], outputDir: str):
         # check if commit was between 9 and 5
         if not commit.author_tz_offset == 0 and time.hour >= 9 and time.hour <= 17:
             authorInfo["sponsoredCommitCount"] += 1
-			
-	print("Analyzing commit message sentiment")
-    sentimentResult = senti.getSentiment(commitMessages)
-    commitMessageSentimentsPositive = sum(
-        1 for _ in filter(lambda value: value >= 1, sentimentResult)
-    )
-    commitMessageSentimentsNegative = sum(
-        1 for _ in filter(lambda value: value <= -1, sentimentResult)
-    )	
+
+    print("Analyzing commit message sentiment")
+    sentimentResult = []
+    commitMessageSentimentsPositive = 0
+    commitMessageSentimentsNegative = 0
+
+    if len(commitMessages) > 0:
+        sentimentResult = senti.getSentiment(commitMessages)
+        commitMessageSentimentsPositive = sum(
+            1 for _ in filter(lambda value: value >= 1, sentimentResult)
+        )
+        commitMessageSentimentsNegative = sum(
+            1 for _ in filter(lambda value: value <= -1, sentimentResult)
+        )
 
     print("Analyzing authors")
     sponsoredAuthorCount = 0
@@ -127,6 +136,7 @@ def commitAnalysis(commits: List[git.Commit], outputDir: str):
     # output project info
     with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
+        w.writerow(["CommitCount", len(commits)])
         w.writerow(["DaysActive", daysActive])
         w.writerow(["FirstCommitDate", "{:%Y-%m-%d}".format(firstCommitDate)])
         w.writerow(["LastCommitDate", "{:%Y-%m-%d}".format(lastCommitDate)])
@@ -134,18 +144,18 @@ def commitAnalysis(commits: List[git.Commit], outputDir: str):
         w.writerow(["SponsoredAuthorCount", sponsoredAuthorCount])
         w.writerow(["PercentageSponsoredAuthors", percentageSponsoredAuthors])
         w.writerow(["TimezoneCount", len([*timezoneInfoDict])])
-		w.writerow(["CommitMessageSentimentsPositive", commitMessageSentimentsPositive])
+        w.writerow(["CommitMessageSentimentsPositive", commitMessageSentimentsPositive])
         w.writerow(["CommitMessageSentimentsNegative", commitMessageSentimentsNegative])
 
     outputStatistics(
         [author["activeDays"] for login, author in authorInfoDict.items()],
-        "ProjectActiveDays",
+        "AuthorActiveDays",
         outputDir,
     )
 
     outputStatistics(
         [author["commitCount"] for login, author in authorInfoDict.items()],
-        "ProjectCommitCount",
+        "AuthorCommitCount",
         outputDir,
     )
 
@@ -164,4 +174,5 @@ def commitAnalysis(commits: List[git.Commit], outputDir: str):
     outputStatistics(
         sentimentResult, "CommitMessageSentiment", outputDir,
     )
+
     return authorInfoDict

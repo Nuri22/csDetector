@@ -30,22 +30,26 @@ def issueAnalysis(
         issueComments.extend(comments)
 
     # analyze comment issue sentiment
-    issueCommentSentiments = senti.getSentiment(issueComments)
-	issueCommentSentimentsPositive = sum(
-        1 for _ in filter(lambda value: value >= 1, issueCommentSentiments)
-    )
-    issueCommentSentimentsNegative = sum(
-        1 for _ in filter(lambda value: value <= -1, issueCommentSentiments)
-    )
-	
+    issueCommentSentiments = []
+    issueCommentSentimentsPositive = 0
+    issueCommentSentimentsNegative = 0
+
+    if len(issueComments) > 0:
+        issueCommentSentiments = senti.getSentiment(issueComments)
+        issueCommentSentimentsPositive = sum(
+            1 for _ in filter(lambda value: value >= 1, issueCommentSentiments)
+        )
+        issueCommentSentimentsNegative = sum(
+            1 for _ in filter(lambda value: value <= -1, issueCommentSentiments)
+        )
+
     print("Writing GraphQL analysis results")
     with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["NumberIssues", issueCount])
         w.writerow(["NumberIssueComments", commentCount])
-		w.writerow(["NumberIssueCommentsPositive", issueCommentSentimentsPositive])
+        w.writerow(["NumberIssueCommentsPositive", issueCommentSentimentsPositive])
         w.writerow(["NumberIssueCommentsNegative", issueCommentSentimentsNegative])
-        
 
     with open(os.path.join(outputDir, "issueCommentsCount.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")

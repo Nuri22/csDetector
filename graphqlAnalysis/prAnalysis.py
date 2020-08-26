@@ -4,34 +4,45 @@ import statsAnalysis as stats
 import sentistrength
 import graphqlAnalysis.graphqlAnalysisHelper as gql
 
+
 def prAnalysis(
     pat: str, senti: sentistrength.PySentiStr, repoShortName: str, outputDir: str
 ):
+
     # split repo by owner and name
     owner, name = gql.splitRepoName(repoShortName)
 
     print("Querying PRs")
-    (prCount, prCommitCounts, prComments, participants, participantCount) = prRequest(
-        pat, owner, name
-    )
+    (
+        prCount,
+        prCommentCount,
+        prCommitCounts,
+        prComments,
+        participants,
+        participantCount,
+    ) = prRequest(pat, owner, name)
 
     # analyze sentiments
-    commentSentiments = senti.getSentiment(prComments)
-	commentSentimentsPositive = sum(
-        1 for _ in filter(lambda value: value >= 1, commentSentiments)
-    )
-    commentSentimentsNegative = sum(
-        1 for _ in filter(lambda value: value <= -1, commentSentiments)
-    )
+    commentSentiments = []
+    commentSentimentsPositive = 0
+    commentSentimentsNegative = 0
+
+    if len(prComments) > 0:
+        commentSentiments = senti.getSentiment(prComments)
+        commentSentimentsPositive = sum(
+            1 for _ in filter(lambda value: value >= 1, commentSentiments)
+        )
+        commentSentimentsNegative = sum(
+            1 for _ in filter(lambda value: value <= -1, commentSentiments)
+        )
 
     print("Writing results")
     with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["NumberPRs", prCount])
-        w.writerow(["NumberPRComments", prCount])
-		w.writerow(["PRCommentsPositive", commentSentimentsPositive])
+        w.writerow(["NumberPRComments", prCommentCount])
+        w.writerow(["PRCommentsPositive", commentSentimentsPositive])
         w.writerow(["PRCommentsNegative", commentSentimentsNegative])
-       
 
     with open(os.path.join(outputDir, "PRCommits.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
@@ -121,7 +132,14 @@ def prRequest(pat: str, owner: str, name: str):
         cursor = pageInfo["endCursor"]
         query = buildPrRequestQuery(owner, name, cursor)
 
-    return (prCount, prCommitCounts, prComments, participants, participantCount)
+    return (
+        prCount,
+        prCommentCount,
+        prCommitCounts,
+        prComments,
+        participants,
+        participantCount,
+    )
 
 
 def buildPrRequestQuery(owner: str, name: str, cursor: str):
