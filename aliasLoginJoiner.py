@@ -81,11 +81,7 @@ def extractAliases(
         if not "author" in commit.keys():
             continue
 
-        if (
-            "author" in commit
-            and "login" in commit["author"]
-            and not commit["author"]["login"] is None
-        ):
+        if not commit["author"] is None and not commit["author"]["login"] is None:
             loginsByEmail[email] = commit["author"]["login"]
         else:
             emailsWithoutLogins.append(email)
@@ -100,7 +96,7 @@ def extractAliases(
         aliasEmails.append(email)
         usedAsValues[email] = login
 
-    if len(emailsWithoutLogins) > 0:
+    if (len(emailsWithoutLogins) > 0):
         for authorA in Bar("Processing").iter(emailsWithoutLogins):
             quickMatched = False
 
