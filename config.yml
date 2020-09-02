@@ -1,6 +1,6 @@
 !!python/object:__main__.Configuration
-repositoryUrl: 'https://github.com/dotnet/core'
-repositoryShortname: 'dotnet/core'
+repositoryUrl: 'https://github.com/apache/mahout'
+repositoryShortname: 'apache/mahout'
 repositoryPath: 'C:\Repos\dotnet.core'
 analysisOutputPath: 'C:\Repos\analysisOutput\dotnet.core'
 aliasPath: 'C:\Repos\analysisOutput\aliases\dotnet.core.yml'

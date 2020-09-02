@@ -11,12 +11,12 @@ def issueAnalysis(
 ):
 
     # split repo by owner and name
+	# split repo by owner and name
     owner, name = gql.splitRepoName(repoShortName)
 
     print("Querying issue comments")
     (issueCount, issues, participants) = issueRequest(pat, owner, name)
-
-    commentCount = 0
+    commentCount=0
     issueComments = []
     for key, value in issues.items():
         commentCount += value["commentCount"]
@@ -27,6 +27,7 @@ def issueAnalysis(
             comments.remove("")
 
         # add to main list
+		# add to main list
         issueComments.extend(comments)
 
     # analyze comment issue sentiment
@@ -121,7 +122,7 @@ def issueRequest(pat: str, owner: str, name: str):
                 participantCount=participantCount,
             )
 
-        # check for next page
+        # check for next page and so on.
         pageInfo = result["repository"]["issues"]["pageInfo"]
         if not pageInfo["hasNextPage"]:
             break
