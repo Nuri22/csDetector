@@ -10,6 +10,7 @@ def prAnalysis(
 ):
 
     # split repo by owner and name
+	# split repo by owner and name
     owner, name = gql.splitRepoName(repoShortName)
 
     print("Querying PRs")
@@ -95,6 +96,7 @@ def prRequest(pat: str, owner: str, name: str):
             prCount = result["repository"]["pullRequests"]["totalCount"]
 
         # add results
+		# add results
         for node in nodes:
             prCommentCount += node["comments"]["totalCount"]
             commitCount = node["commits"]["totalCount"]

@@ -11,7 +11,6 @@ def issueAnalysis(
 ):
 
     # split repo by owner and name
-	# split repo by owner and name
     owner, name = gql.splitRepoName(repoShortName)
 
     print("Querying issue comments")
@@ -27,7 +26,6 @@ def issueAnalysis(
             comments.remove("")
 
         # add to main list
-		# add to main list
         issueComments.extend(comments)
 
     # analyze comment issue sentiment
