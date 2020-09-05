@@ -3,7 +3,6 @@ import csv
 import statsAnalysis as stats
 import sentistrength
 import graphqlAnalysis.graphqlAnalysisHelper as gql
-from functools import reduce
 
 
 def issueAnalysis(
@@ -11,6 +10,7 @@ def issueAnalysis(
 ):
 
     # split repo by owner and name
+	# split repo by owner and name
     owner, name = gql.splitRepoName(repoShortName)
 
     print("Querying issue comments")
