@@ -2,6 +2,7 @@ import git
 import csv
 import os
 
+from dateutil.relativedelta import relativedelta
 from typing import List
 from progress.bar import Bar
 from datetime import datetime
@@ -10,7 +11,62 @@ from statsAnalysis import outputStatistics
 from sentistrength import PySentiStr
 from git.objects.commit import Commit
 
-def commitAnalysis(senti: PySentiStr, commits: List[git.Commit], outputDir: str):
+
+def commitAnalysis(
+    senti: PySentiStr, commits: List[git.Commit], delta: relativedelta, outputDir: str
+):
+
+    # sort commits
+    commits.sort(key=lambda o: o.committed_datetime)
+
+    # split commits into batches
+    batches = []
+    batch = []
+    batchStartDate = None
+    batchEndDate = None
+    batchDates = []
+
+    for commit in Bar("Batching commits").iter(commits):
+
+        # prepare first batch
+        if batchStartDate == None:
+            batchStartDate = commit.committed_datetime
+            batchEndDate = batchStartDate + delta
+
+            batchDates.append(batchStartDate)
+
+        # prepare next batch
+        elif commit.committed_datetime > batchEndDate:
+            batches.append(batch)
+            batch = []
+            batchStartDate = commit.committed_datetime
+            batchEndDate = batchStartDate + delta
+
+            batchDates.append(batchStartDate)
+
+        # populate current batch
+        batch.append(commit)
+
+    # complete batch list and perform clean up
+    batches.append(batch)
+    del batch, commits
+
+    # run analysis per batch
+    authorInfoDict = {}
+    for idx, batch in enumerate(batches):
+
+        # get batch authors
+        batchAuthorInfoDict = commitBatchAnalysis(idx, senti, batch, outputDir)
+
+        # combine with main set
+        authorInfoDict.update(batchAuthorInfoDict)
+
+    return batchDates, authorInfoDict
+
+
+def commitBatchAnalysis(
+    idx: int, senti: PySentiStr, commits: List[git.Commit], outputDir: str
+):
 
     authorInfoDict = {}
     timezoneInfoDict = {}
@@ -18,6 +74,9 @@ def commitAnalysis(senti: PySentiStr, commits: List[git.Commit], outputDir: str)
 
     # traverse all commits
     print("Analyzing commits")
+
+    # sort commits
+    commits.sort(key=lambda o: o.committed_datetime, reverse=True)
 
     commitMessages = []
     commit: Commit
@@ -67,17 +126,17 @@ def commitAnalysis(senti: PySentiStr, commits: List[git.Commit], outputDir: str)
             authorInfo["sponsoredCommitCount"] += 1
 
     print("Analyzing commit message sentiment")
-    sentimentResult = []
-    commitMessageSentimentsPositive = 0
-    commitMessageSentimentsNegative = 0
+    sentimentScores = []
+    commitMessageSentimentsPositive = []
+    commitMessageSentimentsNegative = []
 
     if len(commitMessages) > 0:
-        sentimentResult = senti.getSentiment(commitMessages)
-        commitMessageSentimentsPositive = sum(
-            1 for _ in filter(lambda value: value >= 1, sentimentResult)
+        sentimentScores = senti.getSentiment(commitMessages)
+        commitMessageSentimentsPositive = list(
+            result for result in filter(lambda value: value >= 1, sentimentScores)
         )
-        commitMessageSentimentsNegative = sum(
-            1 for _ in filter(lambda value: value <= -1, sentimentResult)
+        commitMessageSentimentsNegative = list(
+            result for result in filter(lambda value: value <= -1, sentimentScores)
         )
 
     print("Analyzing authors")
@@ -113,28 +172,32 @@ def commitAnalysis(senti: PySentiStr, commits: List[git.Commit], outputDir: str)
     print("Outputting CSVs")
 
     # output author days on project
-    with open(os.path.join(outputDir, "authorDaysOnProject.csv"), "a", newline="") as f:
+    with open(
+        os.path.join(outputDir, f"authorDaysOnProject_{idx}.csv"), "a", newline=""
+    ) as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["Author", "# of Days"])
         for login, author in authorInfoDict.items():
             w.writerow([login, author["activeDays"]])
 
     # output commits per author
-    with open(os.path.join(outputDir, "commitsPerAuthor.csv"), "a", newline="") as f:
+    with open(
+        os.path.join(outputDir, f"commitsPerAuthor_{idx}.csv"), "a", newline=""
+    ) as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["Author", "Commit Count"])
         for login, author in authorInfoDict.items():
             w.writerow([login, author["commitCount"]])
 
     # output timezones
-    with open(os.path.join(outputDir, "timezones.csv"), "a", newline="") as f:
+    with open(os.path.join(outputDir, f"timezones_{idx}.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["Timezone Offset", "Author Count", "Commit Count"])
         for key, timezone in timezoneInfoDict.items():
             w.writerow([key, len(timezone["authors"]), timezone["commitCount"]])
 
     # output project info
-    with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
+    with open(os.path.join(outputDir, f"project_{idx}.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["CommitCount", len(commits)])
         w.writerow(["DaysActive", daysActive])
@@ -144,35 +207,54 @@ def commitAnalysis(senti: PySentiStr, commits: List[git.Commit], outputDir: str)
         w.writerow(["SponsoredAuthorCount", sponsoredAuthorCount])
         w.writerow(["PercentageSponsoredAuthors", percentageSponsoredAuthors])
         w.writerow(["TimezoneCount", len([*timezoneInfoDict])])
-        w.writerow(["CommitMessageSentimentsPositive", commitMessageSentimentsPositive])
-        w.writerow(["CommitMessageSentimentsNegative", commitMessageSentimentsNegative])
 
     outputStatistics(
+        idx,
         [author["activeDays"] for login, author in authorInfoDict.items()],
         "AuthorActiveDays",
         outputDir,
     )
 
     outputStatistics(
+        idx,
         [author["commitCount"] for login, author in authorInfoDict.items()],
         "AuthorCommitCount",
         outputDir,
     )
 
     outputStatistics(
+        idx,
         [len(timezone["authors"]) for key, timezone in timezoneInfoDict.items()],
         "TimezoneAuthorCount",
         outputDir,
     )
 
     outputStatistics(
+        idx,
         [timezone["commitCount"] for key, timezone in timezoneInfoDict.items()],
         "TimezoneCommitCount",
         outputDir,
     )
 
     outputStatistics(
-        sentimentResult, "CommitMessageSentiment", outputDir,
+        idx,
+        sentimentScores,
+        "CommitMessageSentiment",
+        outputDir,
+    )
+
+    outputStatistics(
+        idx,
+        commitMessageSentimentsPositive,
+        "CommitMessageSentimentsPositive",
+        outputDir,
+    )
+
+    outputStatistics(
+        idx,
+        commitMessageSentimentsNegative,
+        "CommitMessageSentimentsNegative",
+        outputDir,
     )
 
     return authorInfoDict
