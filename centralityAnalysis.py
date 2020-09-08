@@ -14,8 +14,28 @@ from utils import authorIdExtractor
 from statsAnalysis import outputStatistics
 
 
-def centralityAnalysis(repo: git.Repo, commits: List[git.Commit], outputDir: str):
+def centralityAnalysis(
+    commits: List[git.Commit],
+    delta: relativedelta,
+    batchDates: List[datetime],
+    outputDir: str,
+):
 
+    # work with batched commits
+    for idx, batchStartDate in enumerate(batchDates):
+        batchEndDate = batchStartDate + delta
+
+        batch = [
+            commit
+            for commit in commits
+            if commit.committed_datetime >= batchStartDate
+            and commit.committed_datetime < batchEndDate
+        ]
+
+        processBatch(idx, batch, outputDir)
+
+
+def processBatch(batchIdx: int, commits: List[git.Commit], outputDir: str):
     allRelatedAuthors = {}
     authorCommits = Counter({})
 
@@ -31,12 +51,6 @@ def centralityAnalysis(repo: git.Repo, commits: List[git.Commit], outputDir: str
         commitDate = datetime.fromtimestamp(commit.committed_date)
         earliestDate = commitDate + relativedelta(months=-1)
         latestDate = commitDate + relativedelta(months=+1)
-
-        # find authors related to this commit
-        #        commitRelatedCommits = commit.iter_items(
-        #                repo, 'master',
-        #                after=earliestDate.strftime('%Y-%m-%d'),
-        #                before=latestDate.strftime('%Y-%m-%d'))
 
         commitRelatedCommits = filter(
             lambda c: findRelatedCommits(author, earliestDate, latestDate, c), commits
@@ -89,13 +103,15 @@ def centralityAnalysis(repo: git.Repo, commits: List[git.Commit], outputDir: str
     print("Outputting CSVs")
 
     # output non-tabular results
-    with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
+    with open(os.path.join(outputDir, f"project_{batchIdx}.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["Density", density])
         w.writerow(["Community Count", len(modularity)])
 
     # output community information
-    with open(os.path.join(outputDir, "community.csv"), "a", newline="") as f:
+    with open(
+        os.path.join(outputDir, f"community_{batchIdx}.csv"), "a", newline=""
+    ) as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["Community Index", "Author Count", "Commit Count"])
         for idx, community in enumerate(modularity):
@@ -114,7 +130,9 @@ def centralityAnalysis(repo: git.Repo, commits: List[git.Commit], outputDir: str
         combined[key] = single
 
     # output tabular results
-    with open(os.path.join(outputDir, "centrality.csv"), "w", newline="") as f:
+    with open(
+        os.path.join(outputDir, f"centrality_{batchIdx}.csv"), "w", newline=""
+    ) as f:
         w = csv.DictWriter(f, ["Author", "Closeness", "Betweenness", "Centrality"])
         w.writeheader()
 
@@ -122,30 +140,45 @@ def centralityAnalysis(repo: git.Repo, commits: List[git.Commit], outputDir: str
             w.writerow(combined[key])
 
     # output high centrality authors
-    with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
+    with open(os.path.join(outputDir, f"project_{batchIdx}.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["NumberHighCentralityAuthors", numberHighCentralityAuthors])
         w.writerow(["PercentageHighCentralityAuthors", percentageHighCentralityAuthors])
 
     # output statistics
     outputStatistics(
-        [value for key, value in closeness.items()], "Closeness", outputDir,
+        batchIdx,
+        [value for key, value in closeness.items()],
+        "Closeness",
+        outputDir,
     )
 
     outputStatistics(
-        [value for key, value in betweenness.items()], "Betweenness", outputDir,
+        batchIdx,
+        [value for key, value in betweenness.items()],
+        "Betweenness",
+        outputDir,
     )
 
     outputStatistics(
-        [value for key, value in centrality.items()], "Centrality", outputDir,
+        batchIdx,
+        [value for key, value in centrality.items()],
+        "Centrality",
+        outputDir,
     )
 
     outputStatistics(
-        [community[0] for community in modularity], "CommunityAuthorCount", outputDir,
+        batchIdx,
+        [community[0] for community in modularity],
+        "CommunityAuthorCount",
+        outputDir,
     )
 
     outputStatistics(
-        [community[1] for community in modularity], "CommunityCommitCount", outputDir,
+        batchIdx,
+        [community[1] for community in modularity],
+        "CommunityCommitCount",
+        outputDir,
     )
 
     # output graph to PNG
@@ -160,7 +193,7 @@ def centralityAnalysis(repo: git.Repo, commits: List[git.Commit], outputDir: str
         linewidths=2,
         font_size=20,
     )
-    graphFigure.savefig(os.path.join(outputDir, "graph.png"))
+    graphFigure.savefig(os.path.join(outputDir, f"graph_{batchIdx}.png"))
 
 
 # helper functions
