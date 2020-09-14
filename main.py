@@ -14,6 +14,7 @@ from devAnalysis import devAnalysis
 from graphqlAnalysis.releaseAnalysis import releaseAnalysis
 from graphqlAnalysis.prAnalysis import prAnalysis
 from graphqlAnalysis.issueAnalysis import issueAnalysis
+from dateutil.relativedelta import relativedelta
 
 FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
 
@@ -105,27 +106,50 @@ def main(argv):
         senti.setSentiStrengthPath(config.sentiStrengthJarPath)
         senti.setSentiStrengthLanguageFolderPath(config.sentiStrengthDataPath)
 
+        # prepare batch delta
+        delta = relativedelta(months=+config.batchSizeInMonths)
+
         # run analysis
-        tagAnalysis(repo, config.analysisOutputPath)
+        batchDates, authorInfoDict = commitAnalysis(
+            senti, commits, delta, config.analysisOutputPath
+        )
 
-        authorInfoDict = commitAnalysis(senti, commits, config.analysisOutputPath)
+        tagAnalysis(repo, delta, batchDates, config.analysisOutputPath)
 
-        centralityAnalysis(repo, commits, config.analysisOutputPath)
+        centralityAnalysis(commits, delta, batchDates, config.analysisOutputPath)
 
         releaseAnalysis(
-            commits, pat, config.repositoryShortname, config.analysisOutputPath
+            commits,
+            pat,
+            config.repositoryShortname,
+            delta,
+            batchDates,
+            config.analysisOutputPath,
         )
 
-        prParticipants = prAnalysis(
-            pat, senti, config.repositoryShortname, config.analysisOutputPath
+        prParticipantBatches = prAnalysis(
+            config,
+            pat,
+            senti,
+            delta,
+            batchDates,
         )
 
-        issueParticipants = issueAnalysis(
-            pat, senti, config.repositoryShortname, config.analysisOutputPath
+        issueParticipantBatches = issueAnalysis(
+            config,
+            pat,
+            senti,
+            delta,
+            batchDates,
         )
 
-        allParticipants = issueParticipants.union(prParticipants)
-        devAnalysis(authorInfoDict, allParticipants, config.analysisOutputPath)
+        for batchIdx, batchDate in enumerate(batchDates):
+            batchParticipants = prParticipantBatches[batchIdx].union(
+                issueParticipantBatches[batchIdx]
+            )
+            devAnalysis(
+                authorInfoDict, batchIdx, batchParticipants, config.analysisOutputPath
+            )
 
         # open output directory
         explore(config.analysisOutputPath)
