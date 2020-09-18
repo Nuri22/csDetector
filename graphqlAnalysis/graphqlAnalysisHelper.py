@@ -1,4 +1,6 @@
 import requests
+import random
+import time
 
 
 def splitRepoName(repoShortName: str):
@@ -14,6 +16,9 @@ def buildNextPageQuery(cursor: str):
 
 def runGraphqlRequest(pat: str, query: str):
     headers = {"Authorization": "Bearer {0}".format(pat)}
+
+    sleepTime = random.randint(5, 15)
+    time.sleep(sleepTime)
 
     request = requests.post(
         "https://api.github.com/graphql", json={"query": query}, headers=headers
