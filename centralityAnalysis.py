@@ -64,6 +64,43 @@ def processBatch(batchIdx: int, commits: List[git.Commit], outputDir: str):
         authorRelatedAuthors = allRelatedAuthors.setdefault(author, set())
         authorRelatedAuthors.update(commitRelatedAuthors)
 
+    prepareGraph(allRelatedAuthors, authorCommits, batchIdx, "Commit", outputDir)
+
+
+def buildGraphQlNetwork(batchIdx: int, batch: list, prefix: str, outputDir: str):
+    allRelatedAuthors = {}
+    authorItems = Counter({})
+
+    # for all commits...
+    print("Analyzing centrality")
+    for authors in batch:
+
+        for author in authors:
+
+            # increase author commit count
+            authorItems.update({author: 1})
+
+            # get current related authors collection and update it
+            relatedAuthors = set(
+                relatedAuthor
+                for otherAuthors in batch
+                for relatedAuthor in otherAuthors
+                if author in otherAuthors and relatedAuthor != author
+            )
+            authorRelatedAuthors = allRelatedAuthors.setdefault(author, set())
+            authorRelatedAuthors.update(relatedAuthors)
+
+    prepareGraph(allRelatedAuthors, authorItems, batchIdx, prefix, outputDir)
+
+
+def prepareGraph(
+    allRelatedAuthors: dict,
+    authorItemCounts: Counter,
+    batchIdx: int,
+    outputPrefix: str,
+    outputDir: str,
+):
+
     # prepare graph
     print("Preparing NX graph")
     G = nx.Graph()
@@ -84,7 +121,7 @@ def processBatch(batchIdx: int, commits: List[git.Commit], outputDir: str):
     try:
         for idx, community in enumerate(greedy_modularity_communities(G)):
             authorCount = len(community)
-            communityCommitCount = sum(authorCommits[author] for author in community)
+            communityCommitCount = sum(authorItemCounts[author] for author in community)
             row = [authorCount, communityCommitCount]
             modularity.append(row)
     except ZeroDivisionError:
@@ -105,15 +142,17 @@ def processBatch(batchIdx: int, commits: List[git.Commit], outputDir: str):
     # output non-tabular results
     with open(os.path.join(outputDir, f"project_{batchIdx}.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
-        w.writerow(["Density", density])
-        w.writerow(["Community Count", len(modularity)])
+        w.writerow([f"{outputPrefix}_Density", density])
+        w.writerow([f"{outputPrefix}_Community Count", len(modularity)])
 
     # output community information
     with open(
-        os.path.join(outputDir, f"community_{batchIdx}.csv"), "a", newline=""
+        os.path.join(outputDir, f"{outputPrefix}_community_{batchIdx}.csv"),
+        "a",
+        newline="",
     ) as f:
         w = csv.writer(f, delimiter=",")
-        w.writerow(["Community Index", "Author Count", "Commit Count"])
+        w.writerow(["Community Index", "Author Count", "Item Count"])
         for idx, community in enumerate(modularity):
             w.writerow([idx + 1, community[0], community[1]])
 
@@ -131,7 +170,9 @@ def processBatch(batchIdx: int, commits: List[git.Commit], outputDir: str):
 
     # output tabular results
     with open(
-        os.path.join(outputDir, f"centrality_{batchIdx}.csv"), "w", newline=""
+        os.path.join(outputDir, f"{outputPrefix}_centrality_{batchIdx}.csv"),
+        "w",
+        newline="",
     ) as f:
         w = csv.DictWriter(f, ["Author", "Closeness", "Betweenness", "Centrality"])
         w.writeheader()
@@ -142,42 +183,49 @@ def processBatch(batchIdx: int, commits: List[git.Commit], outputDir: str):
     # output high centrality authors
     with open(os.path.join(outputDir, f"project_{batchIdx}.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
-        w.writerow(["NumberHighCentralityAuthors", numberHighCentralityAuthors])
-        w.writerow(["PercentageHighCentralityAuthors", percentageHighCentralityAuthors])
+        w.writerow(
+            [f"{outputPrefix}_NumberHighCentralityAuthors", numberHighCentralityAuthors]
+        )
+        w.writerow(
+            [
+                f"{outputPrefix}_PercentageHighCentralityAuthors",
+                percentageHighCentralityAuthors,
+            ]
+        )
 
     # output statistics
     outputStatistics(
         batchIdx,
         [value for key, value in closeness.items()],
-        "Closeness",
+        f"{outputPrefix}_Closeness",
         outputDir,
     )
 
     outputStatistics(
         batchIdx,
         [value for key, value in betweenness.items()],
-        "Betweenness",
+        f"{outputPrefix}_Betweenness",
         outputDir,
     )
 
     outputStatistics(
         batchIdx,
         [value for key, value in centrality.items()],
-        "Centrality",
+        f"{outputPrefix}_Centrality",
         outputDir,
     )
 
     outputStatistics(
         batchIdx,
         [community[0] for community in modularity],
-        "CommunityAuthorCount",
+        f"{outputPrefix}_CommunityAuthorCount",
         outputDir,
     )
 
     outputStatistics(
         batchIdx,
         [community[1] for community in modularity],
-        "CommunityCommitCount",
+        f"{outputPrefix}_CommunityAuthorItemCount",
         outputDir,
     )
 
@@ -193,7 +241,7 @@ def processBatch(batchIdx: int, commits: List[git.Commit], outputDir: str):
         linewidths=2,
         font_size=20,
     )
-    graphFigure.savefig(os.path.join(outputDir, f"graph_{batchIdx}.png"))
+    graphFigure.savefig(os.path.join(outputDir, f"{outputPrefix}_graph_{batchIdx}.png"))
 
 
 # helper functions
