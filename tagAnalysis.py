@@ -1,19 +1,27 @@
 import os
 import git
 import csv
-from datetime import datetime
+import datetime
 
 from progress.bar import Bar
 from statsAnalysis import outputStatistics
+from typing import List
+from dateutil.relativedelta import relativedelta
 
 
-def tagAnalysis(repo: git.Repo, outputDir: str):
+def tagAnalysis(
+    repo: git.Repo,
+    delta: relativedelta,
+    batchDates: List[datetime.datetime],
+    outputDir: str,
+):
     print("Analyzing tags")
 
     tagInfo = []
     print("Sorting (no progress available, may take several minutes to complete)")
     tags = sorted(repo.tags, key=getTaggedDate)
 
+    # get tag list
     if len(tags) > 0:
         lastTag = None
         for tag in Bar("Processing").iter(tags):
@@ -29,6 +37,7 @@ def tagAnalysis(repo: git.Repo, outputDir: str):
             tagInfo.append(
                 dict(
                     path=tag.path,
+                    rawDate=getTaggedDate(tag),
                     date=formatDate(getTaggedDate(tag)),
                     commitCount=commitCount,
                 )
@@ -36,21 +45,39 @@ def tagAnalysis(repo: git.Repo, outputDir: str):
 
             lastTag = tag
 
+    # output tag batches
+    for idx, batchStartDate in enumerate(batchDates):
+        batchEndDate = batchStartDate + delta
+
+        batchTags = [
+            tag
+            for tag in tagInfo
+            if tag["rawDate"] >= batchStartDate and tag["rawDate"] < batchEndDate
+        ]
+
+        outputTags(idx, batchTags, outputDir)
+
+
+def outputTags(idx: int, tagInfo: List[dict], outputDir: str):
+
     # output non-tabular results
-    with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
+    with open(os.path.join(outputDir, f"project_{idx}.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["Tag Count", len(tagInfo)])
 
     # output tag info
     print("Outputting CSVs")
-    with open(os.path.join(outputDir, "tags.csv"), "a", newline="") as f:
+    with open(os.path.join(outputDir, f"tags_{idx}.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["Path", "Date", "Commit Count"])
         for tag in tagInfo:
             w.writerow([tag["path"], tag["date"], tag["commitCount"]])
 
     outputStatistics(
-        [tag["commitCount"] for tag in tagInfo], "TagCommitCount", outputDir,
+        idx,
+        [tag["commitCount"] for tag in tagInfo],
+        "TagCommitCount",
+        outputDir,
     )
 
 
@@ -58,14 +85,19 @@ def getTaggedDate(tag):
     date = None
 
     if tag.tag == None:
-        date = tag.commit.committed_date
+        date = tag.commit.committed_datetime
     else:
-        date = tag.tag.tagged_date
 
-    date = datetime.fromtimestamp(date)
+        # get timezone
+        offset = tag.tag.tagger_tz_offset
+        tzinfo = datetime.timezone(-datetime.timedelta(seconds=offset))
+
+        # get aware date from timestamp
+        date = tag.tag.tagged_date
+        date = datetime.datetime.fromtimestamp(date, tzinfo)
+
     return date
 
 
 def formatDate(value):
     return value.strftime("%Y-%m-%d")
-
