@@ -3,6 +3,7 @@ import csv
 import statsAnalysis as stats
 import sentistrength
 import graphqlAnalysis.graphqlAnalysisHelper as gql
+import centralityAnalysis as centrality
 from functools import reduce
 from dateutil.relativedelta import relativedelta
 from dateutil.parser import isoparse
@@ -10,6 +11,7 @@ from typing import List
 from datetime import datetime
 from configuration import Configuration
 import threading
+from collections import Counter
 
 
 def issueAnalysis(
@@ -26,15 +28,17 @@ def issueAnalysis(
     print("Querying issue comments")
     batches = issueRequest(pat, owner, name, delta, batchDates)
 
-    participantBatches = list()
+    batchParticipants = list()
 
     for batchIdx, batch in enumerate(batches):
         print(f"Analyzing issue batch #{batchIdx}")
 
         # extract data from batch
         issueCount = len(batch)
-        participants = set(p for pr in batch for p in pr["participants"])
-        participantBatches.append(participants)
+        issueParticipants = list(
+            issue["participants"] for issue in batch if len(issue["participants"]) > 0
+        )
+        batchParticipants.append(issueParticipants)
 
         allComments = list()
         issuePositiveComments = list()
@@ -42,11 +46,13 @@ def issueAnalysis(
 
         print(f"    Sentiments per issue", end="")
 
-        semaphore = threading.Semaphore(255)
+        semaphore = threading.Semaphore(15)
         threads = []
-        for pr in batch:
+        for issue in batch:
 
-            prComments = pr["comments"]
+            prComments = list(
+                comment for comment in issue["comments"] if comment and comment.strip()
+            )
 
             if len(prComments) == 0:
                 issuePositiveComments.append(0)
@@ -91,6 +97,10 @@ def issueAnalysis(
                 1 for _ in filter(lambda value: value <= -1, issueCommentSentiments)
             )
 
+        centrality.buildGraphQlNetwork(
+            batchIdx, issueParticipants, "Issues", config.analysisOutputPath
+        )
+
         print("Writing GraphQL analysis results")
         with open(
             os.path.join(config.analysisOutputPath, f"project_{batchIdx}.csv"),
@@ -125,7 +135,7 @@ def issueAnalysis(
             w = csv.writer(f, delimiter=",")
             w.writerow(["Issue Number", "Developer Count"])
             for issue in batch:
-                w.writerow([issue["number"], len(issue["participants"])])
+                w.writerow([issue["number"], len(set(issue["participants"]))])
 
         # output statistics
         stats.outputStatistics(
@@ -144,7 +154,7 @@ def issueAnalysis(
 
         stats.outputStatistics(
             batchIdx,
-            [len(issue["participants"]) for issue in batch],
+            [len(set(issue["participants"])) for issue in batch],
             "IssueParticipantCount",
             config.analysisOutputPath,
         )
@@ -163,7 +173,7 @@ def issueAnalysis(
             config.analysisOutputPath,
         )
 
-    return participantBatches
+    return batchParticipants
 
 
 def analyzeSentiments(
@@ -211,8 +221,9 @@ def issueRequest(
 
             createdAt = isoparse(node["createdAt"])
 
-            if batchEndDate == None or createdAt > batchEndDate:
-
+            if batchEndDate == None or (
+                createdAt > batchEndDate and len(batches) < len(batchDates) - 1
+            ):
                 if batch != None:
                     batches.append(batch)
 
@@ -225,14 +236,12 @@ def issueRequest(
                 "number": node["number"],
                 "createdAt": createdAt,
                 "comments": list(c["bodyText"] for c in node["comments"]["nodes"]),
-                "participants": set(),
+                "participants": list(),
             }
 
             # participants
-            participantCount = 0
             for user in node["participants"]["nodes"]:
-                if gql.tryAddLogin(user, issue["participants"]):
-                    participantCount += 1
+                gql.addLogin(user, issue["participants"])
 
             batch.append(issue)
 
