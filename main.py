@@ -8,7 +8,7 @@ from configuration import Configuration
 from repoLoader import getRepo
 from aliasWorker import replaceAliases
 from commitAnalysis import commitAnalysis
-from centralityAnalysis import centralityAnalysis
+import centralityAnalysis as centrality
 from tagAnalysis import tagAnalysis
 from devAnalysis import devAnalysis
 from graphqlAnalysis.releaseAnalysis import releaseAnalysis
@@ -98,9 +98,6 @@ def main(argv):
 
         os.makedirs(config.analysisOutputPath)
 
-        # handle aliases
-        commits = list(replaceAliases(repo.iter_commits(), config.aliasPath))
-
         # setup sentiment analysis
         senti = sentistrength.PySentiStr()
         senti.setSentiStrengthPath(config.sentiStrengthJarPath)
@@ -109,6 +106,9 @@ def main(argv):
         # prepare batch delta
         delta = relativedelta(months=+config.batchSizeInMonths)
 
+        # handle aliases
+        commits = list(replaceAliases(repo.iter_commits(), config.aliasPath))
+
         # run analysis
         batchDates, authorInfoDict = commitAnalysis(
             senti, commits, delta, config.analysisOutputPath
@@ -116,7 +116,9 @@ def main(argv):
 
         tagAnalysis(repo, delta, batchDates, config.analysisOutputPath)
 
-        centralityAnalysis(commits, delta, batchDates, config.analysisOutputPath)
+        centrality.centralityAnalysis(
+            commits, delta, batchDates, config.analysisOutputPath
+        )
 
         releaseAnalysis(
             commits,
@@ -144,11 +146,36 @@ def main(argv):
         )
 
         for batchIdx, batchDate in enumerate(batchDates):
-            batchParticipants = prParticipantBatches[batchIdx].union(
-                issueParticipantBatches[batchIdx]
+
+            # get combined author lists
+            combinedAuthorsInBatch = (
+                prParticipantBatches[batchIdx] + issueParticipantBatches[batchIdx]
             )
+
+            # build combined network
+            centrality.buildGraphQlNetwork(
+                batchIdx, combinedAuthorsInBatch, "Combined", config.analysisOutputPath
+            )
+
+            # get combined unique authors for both PRs and issues
+            uniqueAuthorsInPrBatch = set(
+                author for pr in prParticipantBatches[batchIdx] for author in pr
+            )
+
+            uniqueAuthorsInIssueBatch = set(
+                author for pr in issueParticipantBatches[batchIdx] for author in pr
+            )
+
+            uniqueAuthorsInBatch = uniqueAuthorsInPrBatch.union(
+                uniqueAuthorsInIssueBatch
+            )
+
+            # run dev analysis
             devAnalysis(
-                authorInfoDict, batchIdx, batchParticipants, config.analysisOutputPath
+                authorInfoDict,
+                batchIdx,
+                uniqueAuthorsInBatch,
+                config.analysisOutputPath,
             )
 
         # open output directory
