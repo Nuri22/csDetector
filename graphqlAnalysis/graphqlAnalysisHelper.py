@@ -17,7 +17,7 @@ def buildNextPageQuery(cursor: str):
 def runGraphqlRequest(pat: str, query: str):
     headers = {"Authorization": "Bearer {0}".format(pat)}
 
-    sleepTime = random.randint(5, 15)
+    sleepTime = random.randint(0, 8)
     time.sleep(sleepTime)
 
     request = requests.post(
@@ -34,14 +34,11 @@ def runGraphqlRequest(pat: str, query: str):
     )
 
 
-def tryAddLogin(node, people: set):
+def addLogin(node, authors: list):
     login = extractAuthorLogin(node)
 
     if not login is None:
-        people.add(login)
-        return True
-
-    return False
+        authors.append(login)
 
 
 def extractAuthorLogin(node):
