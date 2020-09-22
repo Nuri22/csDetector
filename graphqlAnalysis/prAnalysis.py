@@ -3,6 +3,7 @@ import csv
 import statsAnalysis as stats
 import sentistrength
 import graphqlAnalysis.graphqlAnalysisHelper as gql
+import centralityAnalysis as centrality
 from dateutil.relativedelta import relativedelta
 from dateutil.parser import isoparse
 from typing import List
@@ -10,6 +11,7 @@ from datetime import datetime
 from configuration import Configuration
 import itertools
 import threading
+from collections import Counter
 
 
 def prAnalysis(
@@ -26,15 +28,17 @@ def prAnalysis(
     print("Querying PRs")
     batches = prRequest(pat, owner, name, delta, batchDates)
 
-    participantBatches = list()
+    batchParticipants = list()
 
     for batchIdx, batch in enumerate(batches):
         print(f"Analyzing PR batch #{batchIdx}")
 
         # extract data from batch
         prCount = len(batch)
-        participants = set(p for pr in batch for p in pr["participants"])
-        participantBatches.append(participants)
+        prParticipants = list(
+            pr["participants"] for pr in batch if len(pr["participants"]) > 0
+        )
+        batchParticipants.append(prParticipants)
 
         allComments = list()
         prPositiveComments = list()
@@ -42,11 +46,11 @@ def prAnalysis(
 
         print(f"    Sentiments per PR", end="")
 
-        semaphore = threading.Semaphore(255)
+        semaphore = threading.Semaphore(15)
         threads = []
         for pr in batch:
 
-            prComments = pr["comments"]
+            prComments = list(comment for comment in pr["comments"] if comment and comment.strip())
 
             if len(prComments) == 0:
                 prPositiveComments.append(0)
@@ -90,6 +94,10 @@ def prAnalysis(
                 1 for _ in filter(lambda value: value <= -1, commentSentiments)
             )
 
+        centrality.buildGraphQlNetwork(
+            batchIdx, prParticipants, "PRs", config.analysisOutputPath
+        )
+
         print("    Writing results")
         with open(
             os.path.join(config.analysisOutputPath, f"project_{batchIdx}.csv"),
@@ -120,7 +128,7 @@ def prAnalysis(
             w = csv.writer(f, delimiter=",")
             w.writerow(["PR Number", "Developer Count"])
             for pr in batch:
-                w.writerow([pr["number"], len(pr["participants"])])
+                w.writerow([pr["number"], len(set(pr["participants"]))])
 
         # output statistics
         stats.outputStatistics(
@@ -146,7 +154,7 @@ def prAnalysis(
 
         stats.outputStatistics(
             batchIdx,
-            [len(pr["participants"]) for pr in batch],
+            [len(set(pr["participants"])) for pr in batch],
             "PRParticipantsCount",
             config.analysisOutputPath,
         )
@@ -165,14 +173,19 @@ def prAnalysis(
             config.analysisOutputPath,
         )
 
-    return participantBatches
+    return batchParticipants
 
 
 def analyzeSentiments(
     senti, prComments, prPositiveComments, prNegativeComments, semaphore
 ):
     with semaphore:
-        commentSentiments = senti.getSentiment(prComments)
+        commentSentiments = (
+            senti.getSentiment(prComments, score="scale")
+            if len(prComments) > 1
+            else senti.getSentiment(prComments[0])
+        )
+
         commentSentimentsPositive = sum(
             1 for _ in filter(lambda value: value >= 1, commentSentiments)
         )
@@ -212,7 +225,9 @@ def prRequest(
 
             createdAt = isoparse(node["createdAt"])
 
-            if batchEndDate == None or createdAt > batchEndDate:
+            if batchEndDate == None or (
+                createdAt > batchEndDate and len(batches) < len(batchDates) - 1
+            ):
 
                 if batch != None:
                     batches.append(batch)
@@ -227,28 +242,12 @@ def prRequest(
                 "createdAt": createdAt,
                 "comments": list(c["bodyText"] for c in node["comments"]["nodes"]),
                 "commitCount": node["commits"]["totalCount"],
-                "participants": set(),
+                "participants": list(),
             }
-
-            prParticipantCount = 0
-
-            # author
-            if gql.tryAddLogin(node["author"], pr["participants"]):
-                prParticipantCount += 1
-
-            # editor
-            if gql.tryAddLogin(node["editor"], pr["participants"]):
-                prParticipantCount += 1
-
-            # assignees
-            for user in node["assignees"]["nodes"]:
-                if gql.tryAddLogin(user, pr["participants"]):
-                    prParticipantCount += 1
 
             # participants
             for user in node["participants"]["nodes"]:
-                if gql.tryAddLogin(user, pr["participants"]):
-                    prParticipantCount += 1
+                gql.addLogin(user, pr["participants"])
 
             batch.append(pr)
 
@@ -277,21 +276,6 @@ def buildPrRequestQuery(owner: str, name: str, cursor: str):
                 nodes {{
                     number
                     createdAt
-                    author {{
-                        ... on User {{
-                            login
-                        }}
-                    }}
-                    editor {{
-                        ... on User {{
-                            login
-                        }}
-                    }}
-                    assignees(first: 100) {{
-                        nodes {{
-                            login
-                        }}
-                    }}
                     participants(first: 100) {{
                         nodes {{
                             login
