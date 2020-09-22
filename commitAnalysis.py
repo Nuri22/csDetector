@@ -94,7 +94,9 @@ def commitBatchAnalysis(
 
         # save info
         timezoneInfo["authors"].add(author)
-        commitMessages.append(commit.message)
+
+        if commit.message and commit.message.strip():
+            commitMessages.append(commit.message)
 
         # increase commit count
         timezoneInfo["commitCount"] += 1
