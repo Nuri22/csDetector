@@ -5,11 +5,18 @@ import dateutil
 import git
 import statsAnalysis as stats
 from typing import List
+from dateutil.relativedelta import relativedelta
+from dateutil.parser import isoparse
 from datetime import datetime
 
 
 def releaseAnalysis(
-    allCommits: List[git.Commit], pat: str, repoShortName: str, outputDir: str
+    allCommits: List[git.Commit],
+    pat: str,
+    repoShortName: str,
+    delta: relativedelta,
+    batchDates: List[datetime],
+    outputDir: str,
 ):
 
     # split repo by owner and name
@@ -19,98 +26,113 @@ def releaseAnalysis(
     allCommits.sort(key=lambda c: c.committed_datetime)
 
     print("Querying releases")
-    (releaseCount, releases) = releaseRequest(pat, owner, name)
+    batches = releaseRequest(pat, owner, name, delta, batchDates)
 
-    releaseAuthors = set()
-    releaseCommitsCount = {}
+    for batchIdx, batch in enumerate(batches):
 
-    for i, release in enumerate(releases):
-        releaseCommits = list()
-        releaseDate = release["createdAt"]
+        releases = batch["releases"]
+        releaseAuthors = set()
+        releaseCommitsCount = {}
 
-        # try add author to set
-        releaseAuthors.add(release["author"])
+        for i, release in enumerate(releases):
+            releaseCommits = list()
+            releaseDate = release["createdAt"]
 
-        if i == 0:
+            # try add author to set
+            releaseAuthors.add(release["author"])
 
-            # this is the first release, get all commits prior to release created date
-            for commit in allCommits:
-                if commit.committed_datetime < releaseDate:
-                    releaseCommits.append(commit)
-                else:
-                    break
+            if i == 0:
 
-        else:
+                # this is the first release, get all commits prior to release created date
+                for commit in allCommits:
+                    if commit.committed_datetime < releaseDate:
+                        releaseCommits.append(commit)
+                    else:
+                        break
 
-            # get in-between commit count
-            prevReleaseDate = releases[i - 1]["createdAt"]
-            for commit in allCommits:
-                if (
-                    commit.committed_datetime >= prevReleaseDate
-                    and commit.committed_datetime < releaseDate
-                ):
-                    releaseCommits.append(commit)
-                else:
-                    break
+            else:
 
-        # remove all counted commits from list to improve iteration speed
-        allCommits = allCommits[len(releaseCommits) :]
+                # get in-between commit count
+                prevReleaseDate = releases[i - 1]["createdAt"]
+                for commit in allCommits:
+                    if (
+                        commit.committed_datetime >= prevReleaseDate
+                        and commit.committed_datetime < releaseDate
+                    ):
+                        releaseCommits.append(commit)
+                    else:
+                        break
 
-        # calculate authors per release
-        commitAuthors = set(commit.author.email for commit in releaseCommits)
+            # remove all counted commits from list to improve iteration speed
+            allCommits = allCommits[len(releaseCommits) :]
 
-        # add results
-        releaseCommitsCount[release["name"]] = dict(
-            date=release["createdAt"],
-            authorsCount=len(commitAuthors),
-            commitsCount=len(releaseCommits),
-        )
+            # calculate authors per release
+            commitAuthors = set(commit.author.email for commit in releaseCommits)
 
-    # sort releases by date ascending
-    releaseCommitsCount = {
-        key: value
-        for key, value in sorted(
-            releaseCommitsCount.items(), key=lambda r: r[1]["date"]
-        )
-    }
-
-    print("Writing results")
-    with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
-        w = csv.writer(f, delimiter=",")
-        w.writerow(["NumberReleases", releaseCount])
-        w.writerow(["NumberReleaseAuthors", len(releaseAuthors)])
-
-    with open(os.path.join(outputDir, "releases.csv"), "a", newline="") as f:
-        w = csv.writer(f, delimiter=",")
-        w.writerow(["Release", "Date", "Author Count", "Commit Count"])
-        for key, value in releaseCommitsCount.items():
-            w.writerow(
-                [
-                    key,
-                    value["date"].isoformat(),
-                    value["authorsCount"],
-                    value["commitsCount"],
-                ]
+            # add results
+            releaseCommitsCount[release["name"]] = dict(
+                date=release["createdAt"],
+                authorsCount=len(commitAuthors),
+                commitsCount=len(releaseCommits),
             )
 
-    stats.outputStatistics(
-        [value["authorsCount"] for key, value in releaseCommitsCount.items()],
-        "ReleaseAuthorCount",
-        outputDir,
-    )
+        # sort releases by date ascending
+        releaseCommitsCount = {
+            key: value
+            for key, value in sorted(
+                releaseCommitsCount.items(), key=lambda r: r[1]["date"]
+            )
+        }
 
-    stats.outputStatistics(
-        [value["commitsCount"] for key, value in releaseCommitsCount.items()],
-        "ReleaseCommitCount",
-        outputDir,
-    )
+        print("Writing results")
+        with open(
+            os.path.join(outputDir, f"project_{batchIdx}.csv"), "a", newline=""
+        ) as f:
+            w = csv.writer(f, delimiter=",")
+            w.writerow(["NumberReleases", batch["releaseCount"]])
+            w.writerow(["NumberReleaseAuthors", len(releaseAuthors)])
+
+        with open(
+            os.path.join(outputDir, f"releases_{batchIdx}.csv"), "a", newline=""
+        ) as f:
+            w = csv.writer(f, delimiter=",")
+            w.writerow(["Release", "Date", "Author Count", "Commit Count"])
+            for key, value in releaseCommitsCount.items():
+                w.writerow(
+                    [
+                        key,
+                        value["date"].isoformat(),
+                        value["authorsCount"],
+                        value["commitsCount"],
+                    ]
+                )
+
+        stats.outputStatistics(
+            batchIdx,
+            [value["authorsCount"] for key, value in releaseCommitsCount.items()],
+            "ReleaseAuthorCount",
+            outputDir,
+        )
+
+        stats.outputStatistics(
+            batchIdx,
+            [value["commitsCount"] for key, value in releaseCommitsCount.items()],
+            "ReleaseCommitCount",
+            outputDir,
+        )
 
 
-def releaseRequest(pat: str, owner: str, name: str):
+def releaseRequest(
+    pat: str, owner: str, name: str, delta: relativedelta, batchDates: List[datetime]
+):
     query = buildReleaseRequestQuery(owner, name, None)
 
-    releaseCount = 0
-    releases = []
+    # prepare batches
+    batches = []
+    batch = None
+    batchStartDate = None
+    batchEndDate = None
+
     while True:
 
         # get page of releases
@@ -119,15 +141,28 @@ def releaseRequest(pat: str, owner: str, name: str):
         # extract nodes
         nodes = result["repository"]["releases"]["nodes"]
 
-        if releaseCount == 0:
-            releaseCount = result["repository"]["releases"]["totalCount"]
-
         # parse
         for node in nodes:
-            releases.append(
+
+            createdAt = isoparse(node["createdAt"])
+
+            if batchEndDate == None or (
+                createdAt > batchEndDate and len(batches) < len(batchDates) - 1
+            ):
+
+                if batch != None:
+                    batches.append(batch)
+
+                batchStartDate = batchDates[len(batches)]
+                batchEndDate = batchStartDate + delta
+
+                batch = {"releaseCount": 0, "releases": []}
+
+            batch["releaseCount"] += 1
+            batch["releases"].append(
                 dict(
                     name=node["name"],
-                    createdAt=dateutil.parser.isoparse(node["createdAt"]),
+                    createdAt=createdAt,
                     author=node["author"]["login"],
                 )
             )
@@ -140,7 +175,10 @@ def releaseRequest(pat: str, owner: str, name: str):
         cursor = pageInfo["endCursor"]
         query = buildReleaseRequestQuery(owner, name, cursor)
 
-    return (releaseCount, releases)
+    if batch != None:
+        batches.append(batch)
+
+    return batches
 
 
 def buildReleaseRequestQuery(owner: str, name: str, cursor: str):
