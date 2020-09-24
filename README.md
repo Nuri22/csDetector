@@ -57,6 +57,10 @@ For documentation on changing this value see:
 https://github.com/luozhouyang/python-string-similarity#metric-longest-common-subsequence  
 *Ex: 0.75*
 
+#### The Sentistrength tool
+The files of sentistrength tool are available here: 
+http://sentistrength.wlv.ac.uk/jkpop/ 
+
 # Aliases
 It is recommended to generate and massage author aliases prior to analyzing repositories to minimize the number of duplicate users who have historically used multiple emails for their commits skewing the developer network analysis.
 
