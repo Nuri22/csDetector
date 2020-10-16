@@ -97,9 +97,9 @@ def issueAnalysis(
                 1 for _ in filter(lambda value: value <= -1, issueCommentSentiments)
             )
 
-        centrality.buildGraphQlNetwork(
-            batchIdx, issueParticipants, "Issues", config.analysisOutputPath
-        )
+        # centrality.buildGraphQlNetwork(
+        #     batchIdx, issueParticipants, "Issues", config.analysisOutputPath
+        # )
 
         print("Writing GraphQL analysis results")
         with open(

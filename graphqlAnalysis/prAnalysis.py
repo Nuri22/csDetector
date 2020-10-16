@@ -50,7 +50,9 @@ def prAnalysis(
         threads = []
         for pr in batch:
 
-            prComments = list(comment for comment in pr["comments"] if comment and comment.strip())
+            prComments = list(
+                comment for comment in pr["comments"] if comment and comment.strip()
+            )
 
             if len(prComments) == 0:
                 prPositiveComments.append(0)
@@ -94,9 +96,9 @@ def prAnalysis(
                 1 for _ in filter(lambda value: value <= -1, commentSentiments)
             )
 
-        centrality.buildGraphQlNetwork(
-            batchIdx, prParticipants, "PRs", config.analysisOutputPath
-        )
+        # centrality.buildGraphQlNetwork(
+        #     batchIdx, prParticipants, "PRs", config.analysisOutputPath
+        # )
 
         print("    Writing results")
         with open(
