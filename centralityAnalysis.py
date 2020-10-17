@@ -64,7 +64,9 @@ def processBatch(batchIdx: int, commits: List[git.Commit], outputDir: str):
         authorRelatedAuthors = allRelatedAuthors.setdefault(author, set())
         authorRelatedAuthors.update(commitRelatedAuthors)
 
-    prepareGraph(allRelatedAuthors, authorCommits, batchIdx, "Commit", outputDir)
+    prepareGraph(
+        allRelatedAuthors, authorCommits, batchIdx, "commitCentrality", outputDir
+    )
 
 
 def buildGraphQlNetwork(batchIdx: int, batch: list, prefix: str, outputDir: str):
@@ -241,7 +243,7 @@ def prepareGraph(
         linewidths=2,
         font_size=20,
     )
-    graphFigure.savefig(os.path.join(outputDir, f"{outputPrefix}_graph_{batchIdx}.png"))
+    graphFigure.savefig(os.path.join(outputDir, f"{outputPrefix}_{batchIdx}.png"))
 
 
 # helper functions
