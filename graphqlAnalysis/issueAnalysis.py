@@ -138,35 +138,35 @@ def issueAnalysis(
             batchIdx,
             [len(issue["comments"]) for issue in batch],
             "IssueCommentsCount",
-            config.metricsPath,
+            config.resultsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             issueCommentSentiments,
             "IssueCommentSentiments",
-            config.metricsPath,
+            config.resultsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             [len(set(issue["participants"])) for issue in batch],
             "IssueParticipantCount",
-            config.metricsPath,
+            config.resultsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             issuePositiveComments,
             "IssueCountPositiveComments",
-            config.metricsPath,
+            config.resultsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             issueNegativeComments,
             "IssueCountNegativeComments",
-            config.metricsPath,
+            config.resultsPath,
         )
 
     return batchParticipants

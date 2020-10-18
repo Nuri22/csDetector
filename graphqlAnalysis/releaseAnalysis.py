@@ -109,14 +109,14 @@ def releaseAnalysis(
             batchIdx,
             [value["authorsCount"] for key, value in releaseCommitsCount.items()],
             "ReleaseAuthorCount",
-            config.metricsPath,
+            config.resultsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             [value["commitsCount"] for key, value in releaseCommitsCount.items()],
             "ReleaseCommitCount",
-            config.metricsPath,
+            config.resultsPath,
         )
 
 

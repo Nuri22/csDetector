@@ -133,42 +133,42 @@ def prAnalysis(
             batchIdx,
             [len(pr["comments"]) for pr in batch],
             "PRCommentsCount",
-            config.metricsPath,
+            config.resultsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             [pr["commitCount"] for pr in batch],
             "PRCommitsCount",
-            config.metricsPath,
+            config.resultsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             commentSentiments,
             "PRCommentSentiments",
-            config.metricsPath,
+            config.resultsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             [len(set(pr["participants"])) for pr in batch],
             "PRParticipantsCount",
-            config.metricsPath,
+            config.resultsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             prPositiveComments,
             "PRCountPositiveComments",
-            config.metricsPath,
+            config.resultsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             prNegativeComments,
             "PRCountNegativeComments",
-            config.metricsPath,
+            config.resultsPath,
         )
 
     return batchParticipants
