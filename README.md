@@ -22,35 +22,9 @@ Inspect **installModules.ps1** and **requiredModules.txt** files for a manual in
 # Running
 If you followed the recommended installation approach, the virtual environment **must be activated** prior to running the tool! Run the proper to your environment activation script inside the **.venv/Scripts** folder.
 
-To run the tool you need to setup a configuration file **[something].yml** and run **main.py** with the right parameters:
-- **-c** (**--config**): physical location of the configuration file
-- **-p** (**--pat**): GitHub PAT (personal access token) used for querying the GitHub API
-
-Your final result should look like this:  
-**$ py main.py -c config.yml -p abc123456**
+To run the tool you need run **devNetwork.py** with the right parameters. Pass the **--help** parameter to view the documentation.
 
 ## Configuration File
-
-#### repositoryUrl (str)
-The URL to the GitHub repository you want to analyse.  
-*Ex: "https://github.com/eclipse/rt.equinox.bundles"*
-
-#### repositoryShortname (str)
-The user/project part of the repository URL. Must be exact.  
-*Ex: "eclipse/rt.equinox.bundles"*
-
-#### repositoryPath (str)
-The physical path to the local clone of the repository.
-If the directory does not exist, it will be created and the repository will be automatically cloned to this path.   
-*Ex: "D:\Repos\rt.equinox.bundles"*
-
-#### analysisOutputPath (str)
-The physical path to the desired output directory.  
-*Ex: "D:\Repos\analysisOutput\eclipse-rt.equinox.bundles"*
-
-#### aliasPath (str)
-The physical path to the list of author aliases.  
-*Ex: "D:\Repos\analysisOutput\aliases\eclipse-rt.equinox.bundles.yml"*
 
 #### aliasSimilarityMaxDistance (float)
 For documentation on changing this value see:  
@@ -64,5 +38,4 @@ http://sentistrength.wlv.ac.uk/jkpop/
 # Aliases
 It is recommended to generate and massage author aliases prior to analyzing repositories to minimize the number of duplicate users who have historically used multiple emails for their commits skewing the developer network analysis.
 
-To generate the initial aliases, run the **aliasLoginJoiner.py** file followed by your PAT as the first parameter:  
-**$ py aliasLoginJoiner.py abc123456**
+To generate author aliases, run **authorAliasExtractor.py** with the right parameters. Pass **--help** for parameter documentation.
