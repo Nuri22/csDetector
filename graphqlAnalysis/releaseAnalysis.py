@@ -8,25 +8,21 @@ from typing import List
 from dateutil.relativedelta import relativedelta
 from dateutil.parser import isoparse
 from datetime import datetime
+from configuration import Configuration
 
 
 def releaseAnalysis(
     allCommits: List[git.Commit],
-    pat: str,
-    repoShortName: str,
+    config: Configuration,
     delta: relativedelta,
     batchDates: List[datetime],
-    outputDir: str,
 ):
-
-    # split repo by owner and name
-    owner, name = gql.splitRepoName(repoShortName)
 
     # sort commits by ascending commit date
     allCommits.sort(key=lambda c: c.committed_datetime)
 
     print("Querying releases")
-    batches = releaseRequest(pat, owner, name, delta, batchDates)
+    batches = releaseRequest(config, delta, batchDates)
 
     for batchIdx, batch in enumerate(batches):
 
@@ -86,14 +82,16 @@ def releaseAnalysis(
 
         print("Writing results")
         with open(
-            os.path.join(outputDir, f"project_{batchIdx}.csv"), "a", newline=""
+            os.path.join(config.resultsPath, f"results_{batchIdx}.csv"), "a", newline=""
         ) as f:
             w = csv.writer(f, delimiter=",")
             w.writerow(["NumberReleases", batch["releaseCount"]])
             w.writerow(["NumberReleaseAuthors", len(releaseAuthors)])
 
         with open(
-            os.path.join(outputDir, f"releases_{batchIdx}.csv"), "a", newline=""
+            os.path.join(config.metricsPath, f"releases_{batchIdx}.csv"),
+            "a",
+            newline="",
         ) as f:
             w = csv.writer(f, delimiter=",")
             w.writerow(["Release", "Date", "Author Count", "Commit Count"])
@@ -111,21 +109,23 @@ def releaseAnalysis(
             batchIdx,
             [value["authorsCount"] for key, value in releaseCommitsCount.items()],
             "ReleaseAuthorCount",
-            outputDir,
+            config.metricsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             [value["commitsCount"] for key, value in releaseCommitsCount.items()],
             "ReleaseCommitCount",
-            outputDir,
+            config.metricsPath,
         )
 
 
 def releaseRequest(
-    pat: str, owner: str, name: str, delta: relativedelta, batchDates: List[datetime]
+    config: Configuration, delta: relativedelta, batchDates: List[datetime]
 ):
-    query = buildReleaseRequestQuery(owner, name, None)
+    query = buildReleaseRequestQuery(
+        config.repositoryOwner, config.repositoryName, None
+    )
 
     # prepare batches
     batches = []
@@ -136,7 +136,7 @@ def releaseRequest(
     while True:
 
         # get page of releases
-        result = gql.runGraphqlRequest(pat, query)
+        result = gql.runGraphqlRequest(config.pat, query)
 
         # extract nodes
         nodes = result["repository"]["releases"]["nodes"]
@@ -173,7 +173,9 @@ def releaseRequest(
             break
 
         cursor = pageInfo["endCursor"]
-        query = buildReleaseRequestQuery(owner, name, cursor)
+        query = buildReleaseRequestQuery(
+            config.repositoryOwner, config.repositoryName, cursor
+        )
 
     if batch != None:
         batches.append(batch)

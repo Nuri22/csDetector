@@ -16,17 +16,13 @@ from collections import Counter
 
 def prAnalysis(
     config: Configuration,
-    pat: str,
     senti: sentistrength.PySentiStr,
     delta: relativedelta,
     batchDates: List[datetime],
 ):
 
-    # split repo by owner and name
-    owner, name = gql.splitRepoName(config.repositoryShortname)
-
     print("Querying PRs")
-    batches = prRequest(pat, owner, name, delta, batchDates)
+    batches = prRequest(config.pat, config.repositoryOwner, config.repositoryName, delta, batchDates)
 
     batchParticipants = list()
 
@@ -97,12 +93,12 @@ def prAnalysis(
             )
 
         # centrality.buildGraphQlNetwork(
-        #     batchIdx, prParticipants, "PRs", config.analysisOutputPath
+        #     batchIdx, prParticipants, "PRs", config.metricsPath
         # )
 
         print("    Writing results")
         with open(
-            os.path.join(config.analysisOutputPath, f"project_{batchIdx}.csv"),
+            os.path.join(config.resultsPath, f"results_{batchIdx}.csv"),
             "a",
             newline="",
         ) as f:
@@ -113,7 +109,7 @@ def prAnalysis(
             w.writerow(["PRCommentsNegative", commentSentimentsNegative])
 
         with open(
-            os.path.join(config.analysisOutputPath, f"PRCommits_{batchIdx}.csv"),
+            os.path.join(config.metricsPath, f"PRCommits_{batchIdx}.csv"),
             "a",
             newline="",
         ) as f:
@@ -123,7 +119,7 @@ def prAnalysis(
                 w.writerow([pr["number"], pr["commitCount"]])
 
         with open(
-            os.path.join(config.analysisOutputPath, f"PRParticipants_{batchIdx}.csv"),
+            os.path.join(config.metricsPath, f"PRParticipants_{batchIdx}.csv"),
             "a",
             newline="",
         ) as f:
@@ -137,42 +133,42 @@ def prAnalysis(
             batchIdx,
             [len(pr["comments"]) for pr in batch],
             "PRCommentsCount",
-            config.analysisOutputPath,
+            config.metricsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             [pr["commitCount"] for pr in batch],
             "PRCommitsCount",
-            config.analysisOutputPath,
+            config.metricsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             commentSentiments,
             "PRCommentSentiments",
-            config.analysisOutputPath,
+            config.metricsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             [len(set(pr["participants"])) for pr in batch],
             "PRParticipantsCount",
-            config.analysisOutputPath,
+            config.metricsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             prPositiveComments,
             "PRCountPositiveComments",
-            config.analysisOutputPath,
+            config.metricsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             prNegativeComments,
             "PRCountNegativeComments",
-            config.analysisOutputPath,
+            config.metricsPath,
         )
 
     return batchParticipants

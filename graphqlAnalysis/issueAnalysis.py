@@ -16,17 +16,13 @@ from collections import Counter
 
 def issueAnalysis(
     config: Configuration,
-    pat: str,
     senti: sentistrength.PySentiStr,
     delta: relativedelta,
     batchDates: List[datetime],
 ):
 
-    # split repo by owner and name
-    owner, name = gql.splitRepoName(config.repositoryShortname)
-
     print("Querying issue comments")
-    batches = issueRequest(pat, owner, name, delta, batchDates)
+    batches = issueRequest(config.pat, config.repositoryOwner, config.repositoryName, delta, batchDates)
 
     batchParticipants = list()
 
@@ -98,12 +94,12 @@ def issueAnalysis(
             )
 
         # centrality.buildGraphQlNetwork(
-        #     batchIdx, issueParticipants, "Issues", config.analysisOutputPath
+        #     batchIdx, issueParticipants, "Issues", config.metricsPath
         # )
 
         print("Writing GraphQL analysis results")
         with open(
-            os.path.join(config.analysisOutputPath, f"project_{batchIdx}.csv"),
+            os.path.join(config.resultsPath, f"results_{batchIdx}.csv"),
             "a",
             newline="",
         ) as f:
@@ -115,7 +111,7 @@ def issueAnalysis(
 
         with open(
             os.path.join(
-                config.analysisOutputPath, f"issueCommentsCount_{batchIdx}.csv"
+                config.metricsPath, f"issueCommentsCount_{batchIdx}.csv"
             ),
             "a",
             newline="",
@@ -127,7 +123,7 @@ def issueAnalysis(
 
         with open(
             os.path.join(
-                config.analysisOutputPath, f"issueParticipantCount_{batchIdx}.csv"
+                config.metricsPath, f"issueParticipantCount_{batchIdx}.csv"
             ),
             "a",
             newline="",
@@ -142,35 +138,35 @@ def issueAnalysis(
             batchIdx,
             [len(issue["comments"]) for issue in batch],
             "IssueCommentsCount",
-            config.analysisOutputPath,
+            config.metricsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             issueCommentSentiments,
             "IssueCommentSentiments",
-            config.analysisOutputPath,
+            config.metricsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             [len(set(issue["participants"])) for issue in batch],
             "IssueParticipantCount",
-            config.analysisOutputPath,
+            config.metricsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             issuePositiveComments,
             "IssueCountPositiveComments",
-            config.analysisOutputPath,
+            config.metricsPath,
         )
 
         stats.outputStatistics(
             batchIdx,
             issueNegativeComments,
             "IssueCountNegativeComments",
-            config.analysisOutputPath,
+            config.metricsPath,
         )
 
     return batchParticipants

@@ -3,11 +3,6 @@ import random
 import time
 
 
-def splitRepoName(repoShortName: str):
-    split = repoShortName.split("/")
-    return split[0], split[1]
-
-
 def buildNextPageQuery(cursor: str):
     if cursor is None:
         return ""
