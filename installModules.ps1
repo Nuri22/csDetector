@@ -5,4 +5,4 @@ py -m venv .venv
 .venv/Scripts./Activate.ps1
 
 # install modules
-pip install -r requiredModules.txt
+pip install -r requirements.txt
