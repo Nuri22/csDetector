@@ -10,10 +10,14 @@ from utils import authorIdExtractor
 from statsAnalysis import outputStatistics
 from sentistrength import PySentiStr
 from git.objects.commit import Commit
+from configuration import Configuration
 
 
 def commitAnalysis(
-    senti: PySentiStr, commits: List[git.Commit], delta: relativedelta, outputDir: str
+    senti: PySentiStr,
+    commits: List[git.Commit],
+    delta: relativedelta,
+    config: Configuration,
 ):
 
     # sort commits
@@ -56,7 +60,7 @@ def commitAnalysis(
     for idx, batch in enumerate(batches):
 
         # get batch authors
-        batchAuthorInfoDict = commitBatchAnalysis(idx, senti, batch, outputDir)
+        batchAuthorInfoDict = commitBatchAnalysis(idx, senti, batch, config)
 
         # combine with main set
         authorInfoDict.update(batchAuthorInfoDict)
@@ -65,7 +69,7 @@ def commitAnalysis(
 
 
 def commitBatchAnalysis(
-    idx: int, senti: PySentiStr, commits: List[git.Commit], outputDir: str
+    idx: int, senti: PySentiStr, commits: List[git.Commit], config: Configuration
 ):
 
     authorInfoDict = {}
@@ -175,7 +179,9 @@ def commitBatchAnalysis(
 
     # output author days on project
     with open(
-        os.path.join(outputDir, f"authorDaysOnProject_{idx}.csv"), "a", newline=""
+        os.path.join(config.metricsPath, f"authorDaysOnProject_{idx}.csv"),
+        "a",
+        newline="",
     ) as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["Author", "# of Days"])
@@ -184,7 +190,7 @@ def commitBatchAnalysis(
 
     # output commits per author
     with open(
-        os.path.join(outputDir, f"commitsPerAuthor_{idx}.csv"), "a", newline=""
+        os.path.join(config.metricsPath, f"commitsPerAuthor_{idx}.csv"), "a", newline=""
     ) as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["Author", "Commit Count"])
@@ -192,14 +198,18 @@ def commitBatchAnalysis(
             w.writerow([login, author["commitCount"]])
 
     # output timezones
-    with open(os.path.join(outputDir, f"timezones_{idx}.csv"), "a", newline="") as f:
+    with open(
+        os.path.join(config.metricsPath, f"timezones_{idx}.csv"), "a", newline=""
+    ) as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["Timezone Offset", "Author Count", "Commit Count"])
         for key, timezone in timezoneInfoDict.items():
             w.writerow([key, len(timezone["authors"]), timezone["commitCount"]])
 
-    # output project info
-    with open(os.path.join(outputDir, f"project_{idx}.csv"), "a", newline="") as f:
+    # output results
+    with open(
+        os.path.join(config.resultsPath, f"results_{idx}.csv"), "a", newline=""
+    ) as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["CommitCount", len(commits)])
         w.writerow(["DaysActive", daysActive])
@@ -214,49 +224,49 @@ def commitBatchAnalysis(
         idx,
         [author["activeDays"] for login, author in authorInfoDict.items()],
         "AuthorActiveDays",
-        outputDir,
+        config.metricsPath,
     )
 
     outputStatistics(
         idx,
         [author["commitCount"] for login, author in authorInfoDict.items()],
         "AuthorCommitCount",
-        outputDir,
+        config.metricsPath,
     )
 
     outputStatistics(
         idx,
         [len(timezone["authors"]) for key, timezone in timezoneInfoDict.items()],
         "TimezoneAuthorCount",
-        outputDir,
+        config.metricsPath,
     )
 
     outputStatistics(
         idx,
         [timezone["commitCount"] for key, timezone in timezoneInfoDict.items()],
         "TimezoneCommitCount",
-        outputDir,
+        config.metricsPath,
     )
 
     outputStatistics(
         idx,
         sentimentScores,
         "CommitMessageSentiment",
-        outputDir,
+        config.metricsPath,
     )
 
     outputStatistics(
         idx,
         commitMessageSentimentsPositive,
         "CommitMessageSentimentsPositive",
-        outputDir,
+        config.metricsPath,
     )
 
     outputStatistics(
         idx,
         commitMessageSentimentsNegative,
         "CommitMessageSentimentsNegative",
-        outputDir,
+        config.metricsPath,
     )
 
     return authorInfoDict
