@@ -1,10 +1,10 @@
-import sys, getopt, os, subprocess, shutil
+import sys, os, subprocess, shutil, stat
 import git
 import yaml
 import pkg_resources
 import sentistrength
 
-from configuration import Configuration
+from configuration import Configuration, parseDevNetworkArgs
 from repoLoader import getRepo
 from aliasWorker import replaceAliases
 from commitAnalysis import commitAnalysis
@@ -61,77 +61,44 @@ def main(argv):
             )
 
         # parse args
-        configFile = ""
-        pat = ""
+        config = parseDevNetworkArgs(sys.argv)
 
-        try:
-            opts, args = getopt.getopt(argv, "hc:p:", ["help", "config=", "pat="])
-        except getopt.GetoptError:
-            raise Exception(
-                "Incorrect arguments!\nmain.py -c <config.yml> -p <GitHub PAT>"
-            )
-        for opt, arg in opts:
-            if opt in ("-h", "--help"):
-                print("main.py -c <config.yml> -p <GitHub PAT>")
-                sys.exit()
-            elif opt in ("-c", "--config"):
-                configFile = arg
-            elif opt in ("-p", "--pat"):
-                pat = arg
+        # prepare folders
+        if os.path.exists(config.resultsPath):
+            remove_tree(config.resultsPath)
 
-        # validate file
-        if not os.path.exists(configFile):
-            raise Exception("Configuration file not found")
-
-        # read configuration
-        config = ...  # type: Configuration
-        with open(configFile, "r", encoding="utf-8-sig") as file:
-            content = file.read()
-            config = yaml.load(content, Loader=yaml.FullLoader)
+        os.makedirs(config.metricsPath)
 
         # get repository reference
         repo = getRepo(config)
 
-        # delete any existing output files for repo
-        if os.path.exists(config.analysisOutputPath):
-            shutil.rmtree(config.analysisOutputPath, False)
-
-        os.makedirs(config.analysisOutputPath)
-
         # setup sentiment analysis
         senti = sentistrength.PySentiStr()
-        senti.setSentiStrengthPath(config.sentiStrengthJarPath)
-        senti.setSentiStrengthLanguageFolderPath(config.sentiStrengthDataPath)
+
+        sentiJarPath = os.path.join(config.sentiStrengthPath, "SentiStrength.jar")
+        senti.setSentiStrengthPath(sentiJarPath)
+
+        sentiDataPath = os.path.join(config.sentiStrengthPath, "SentiStrength_Data")
+        senti.setSentiStrengthLanguageFolderPath(sentiDataPath)
 
         # prepare batch delta
-        delta = relativedelta(months=+config.batchSizeInMonths)
+        # TODO: read from the params, for now hardcoded to 999 to always perform a full analysis
+        delta = relativedelta(months=+999)
 
         # handle aliases
-        commits = list(replaceAliases(repo.iter_commits(), config.aliasPath))
+        commits = list(replaceAliases(repo.iter_commits(), config))
 
         # run analysis
-        batchDates, authorInfoDict = commitAnalysis(
-            senti, commits, delta, config.analysisOutputPath
-        )
+        batchDates, authorInfoDict = commitAnalysis(senti, commits, delta, config)
 
-        tagAnalysis(repo, delta, batchDates, config.analysisOutputPath)
+        tagAnalysis(repo, delta, batchDates, config)
 
-        centrality.centralityAnalysis(
-            commits, delta, batchDates, config.analysisOutputPath
-        )
+        centrality.centralityAnalysis(commits, delta, batchDates, config)
 
-        releaseAnalysis(
-            commits,
-            pat,
-            config.repositoryShortname,
-            delta,
-            batchDates,
-            config.analysisOutputPath,
-        )
+        releaseAnalysis(commits, config, delta, batchDates)
 
         prParticipantBatches = prAnalysis(
             config,
-            pat,
             senti,
             delta,
             batchDates,
@@ -139,7 +106,6 @@ def main(argv):
 
         issueParticipantBatches = issueAnalysis(
             config,
-            pat,
             senti,
             delta,
             batchDates,
@@ -154,7 +120,10 @@ def main(argv):
 
             # build combined network
             centrality.buildGraphQlNetwork(
-                batchIdx, combinedAuthorsInBatch, "Combined", config.analysisOutputPath
+                batchIdx,
+                combinedAuthorsInBatch,
+                "issuesAndPRsCentrality",
+                config,
             )
 
             # get combined unique authors for both PRs and issues
@@ -175,11 +144,11 @@ def main(argv):
                 authorInfoDict,
                 batchIdx,
                 uniqueAuthorsInBatch,
-                config.analysisOutputPath,
+                config,
             )
 
         # open output directory
-        explore(config.analysisOutputPath)
+        explore(config.repositoryPath)
 
     finally:
         # close repo to avoid resource leaks
@@ -194,6 +163,18 @@ class Progress(git.remote.RemoteProgress):
 
 def commitDate(tag):
     return tag.commit.committed_date
+
+
+def remove_readonly(fn, path, excinfo):
+    os.chmod(path, stat.S_IWRITE)
+    remove_tree(path)
+
+
+def remove_tree(path):
+    if os.path.isdir(path):
+        shutil.rmtree(path, onerror=remove_readonly)
+    else:
+        os.remove(path)
 
 
 # https://stackoverflow.com/a/50965628
