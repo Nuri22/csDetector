@@ -43,12 +43,14 @@ def parseAliasArgs(args: Sequence[str]):
         "-p",
         "--pat",
         help="GitHub PAT (personal access token) used for querying the GitHub API",
+        required=True,
     )
 
     parser.add_argument(
         "-r",
         "--repositoryUrl",
         help="GitHub repository URL that you want to analyse",
+        required=True,
     )
 
     parser.add_argument(
@@ -58,12 +60,14 @@ def parseAliasArgs(args: Sequence[str]):
         https://github.com/luozhouyang/python-string-similarity#metric-longest-common-subsequence
         """,
         type=float,
+        required=True,
     )
 
     parser.add_argument(
         "-o",
         "--outputPath",
         help="local directory path for analysis output",
+        required=True,
     )
 
     args = parser.parse_args()
@@ -85,24 +89,28 @@ def parseDevNetworkArgs(args: Sequence[str]):
         "-p",
         "--pat",
         help="GitHub PAT (personal access token) used for querying the GitHub API",
+        required=True,
     )
 
     parser.add_argument(
         "-r",
         "--repositoryUrl",
         help="GitHub repository URL that you want to analyse",
+        required=True,
     )
 
     parser.add_argument(
         "-s",
         "--sentiStrengthPath",
         help="local directory path to the SentiStregth tool",
+        required=True,
     )
 
     parser.add_argument(
         "-o",
         "--outputPath",
         help="local directory path for analysis output",
+        required=True,
     )
 
     args = parser.parse_args()

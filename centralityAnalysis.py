@@ -203,35 +203,35 @@ def prepareGraph(
         batchIdx,
         [value for key, value in closeness.items()],
         f"{outputPrefix}_Closeness",
-        config.metricsPath,
+        config.resultsPath,
     )
 
     outputStatistics(
         batchIdx,
         [value for key, value in betweenness.items()],
         f"{outputPrefix}_Betweenness",
-        config.metricsPath,
+        config.resultsPath,
     )
 
     outputStatistics(
         batchIdx,
         [value for key, value in centrality.items()],
         f"{outputPrefix}_Centrality",
-        config.metricsPath,
+        config.resultsPath,
     )
 
     outputStatistics(
         batchIdx,
         [community[0] for community in modularity],
         f"{outputPrefix}_CommunityAuthorCount",
-        config.metricsPath,
+        config.resultsPath,
     )
 
     outputStatistics(
         batchIdx,
         [community[1] for community in modularity],
         f"{outputPrefix}_CommunityAuthorItemCount",
-        config.metricsPath,
+        config.resultsPath,
     )
 
     # output graph to PNG

@@ -224,49 +224,49 @@ def commitBatchAnalysis(
         idx,
         [author["activeDays"] for login, author in authorInfoDict.items()],
         "AuthorActiveDays",
-        config.metricsPath,
+        config.resultsPath,
     )
 
     outputStatistics(
         idx,
         [author["commitCount"] for login, author in authorInfoDict.items()],
         "AuthorCommitCount",
-        config.metricsPath,
+        config.resultsPath,
     )
 
     outputStatistics(
         idx,
         [len(timezone["authors"]) for key, timezone in timezoneInfoDict.items()],
         "TimezoneAuthorCount",
-        config.metricsPath,
+        config.resultsPath,
     )
 
     outputStatistics(
         idx,
         [timezone["commitCount"] for key, timezone in timezoneInfoDict.items()],
         "TimezoneCommitCount",
-        config.metricsPath,
+        config.resultsPath,
     )
 
     outputStatistics(
         idx,
         sentimentScores,
         "CommitMessageSentiment",
-        config.metricsPath,
+        config.resultsPath,
     )
 
     outputStatistics(
         idx,
         commitMessageSentimentsPositive,
         "CommitMessageSentimentsPositive",
-        config.metricsPath,
+        config.resultsPath,
     )
 
     outputStatistics(
         idx,
         commitMessageSentimentsNegative,
         "CommitMessageSentimentsNegative",
-        config.metricsPath,
+        config.resultsPath,
     )
 
     return authorInfoDict
