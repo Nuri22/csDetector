@@ -6,6 +6,6 @@ gitpython==3.1.2
 requests==2.23.0
 pyyaml==5.3.1
 progress==1.5
-strsimpy==0.1.4
+strsimpy==0.1.9
 python-dateutil==2.8.1
 sentistrength==0.0.8

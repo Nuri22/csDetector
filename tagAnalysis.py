@@ -7,13 +7,14 @@ from progress.bar import Bar
 from statsAnalysis import outputStatistics
 from typing import List
 from dateutil.relativedelta import relativedelta
+from configuration import Configuration
 
 
 def tagAnalysis(
     repo: git.Repo,
     delta: relativedelta,
     batchDates: List[datetime.datetime],
-    outputDir: str,
+    config: Configuration,
 ):
     print("Analyzing tags")
 
@@ -55,19 +56,23 @@ def tagAnalysis(
             if tag["rawDate"] >= batchStartDate and tag["rawDate"] < batchEndDate
         ]
 
-        outputTags(idx, batchTags, outputDir)
+        outputTags(idx, batchTags, config)
 
 
-def outputTags(idx: int, tagInfo: List[dict], outputDir: str):
+def outputTags(idx: int, tagInfo: List[dict], config: Configuration):
 
     # output non-tabular results
-    with open(os.path.join(outputDir, f"project_{idx}.csv"), "a", newline="") as f:
+    with open(
+        os.path.join(config.resultsPath, f"results_{idx}.csv"), "a", newline=""
+    ) as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["Tag Count", len(tagInfo)])
 
     # output tag info
     print("Outputting CSVs")
-    with open(os.path.join(outputDir, f"tags_{idx}.csv"), "a", newline="") as f:
+    with open(
+        os.path.join(config.metricsPath, f"tags_{idx}.csv"), "a", newline=""
+    ) as f:
         w = csv.writer(f, delimiter=",")
         w.writerow(["Path", "Date", "Commit Count"])
         for tag in tagInfo:
@@ -77,7 +82,7 @@ def outputTags(idx: int, tagInfo: List[dict], outputDir: str):
         idx,
         [tag["commitCount"] for tag in tagInfo],
         "TagCommitCount",
-        outputDir,
+        config.metricsPath,
     )
 
 
