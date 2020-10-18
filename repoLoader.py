@@ -7,7 +7,10 @@ from configuration import Configuration
 def getRepo(config: Configuration):
 
     # build path
-    repoPath = os.path.join(config.repositoryPath, "code")
+    repoPath = os.path.join(
+        config.repositoryPath,
+        "{}.{}".format(config.repositoryOwner, config.repositoryName),
+    )
 
     # get repository reference
     repo = None

@@ -13,7 +13,7 @@ def outputStatistics(idx: int, data: list, metric: str, outputDir: str):
     stats = calculateStats(data)
 
     # output
-    with open(os.path.join(outputDir, f"statistics_{idx}.csv"), "a", newline="") as f:
+    with open(os.path.join(outputDir, f"results_{idx}.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
 
         for key in stats:
@@ -27,21 +27,21 @@ def calculateStats(data):
 
     stats = dict(
         count=len(data),
-        #min=min(data),
-        #max=max(data),
+        min=min(data),
+        max=max(data),
         mean=mean(data),
         # not used because we lack rules on how to deal with negatives
         # geometric_mean=geometric_mean(nonZeroData) - 1,
         # harmonic_mean=harmonic_mean(data),
-        #median=median(data),
-        #median_low=median_low(data),
-        #median_high=median_high(data),
-        #median_grouped=median_grouped(data),
-        #mode=mode(data),
-        #pstdev=pstdev(data),
-        #pvariance=pvariance(data),
+        median=median(data),
+        median_low=median_low(data),
+        median_high=median_high(data),
+        median_grouped=median_grouped(data),
+        mode=mode(data),
+        pstdev=pstdev(data),
+        pvariance=pvariance(data),
         stdev=stdev(data) if len(data) > 1 else None,
-        #variance=variance(data) if len(data) > 1 else None,
+        variance=variance(data) if len(data) > 1 else None,
     )
 
     return stats

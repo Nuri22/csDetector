@@ -82,7 +82,7 @@ def outputTags(idx: int, tagInfo: List[dict], config: Configuration):
         idx,
         [tag["commitCount"] for tag in tagInfo],
         "TagCommitCount",
-        config.metricsPath,
+        config.resultsPath,
     )
 
 
