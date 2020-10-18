@@ -5,7 +5,7 @@ import requests
 import sys
 import re
 
-from configuration import Configuration
+from configuration import Configuration, parseAliasArgs
 from repoLoader import getRepo
 from progress.bar import Bar
 from utils import authorIdExtractor
@@ -14,41 +14,29 @@ from strsimpy.metric_lcs import MetricLCS
 
 def main():
     try:
-
-        # read configuration
-        config = ...  # type: Configuration
-        with open("config.yml", "r", encoding="utf-8-sig") as file:
-            content = file.read()
-            config = yaml.load(content, Loader=yaml.FullLoader)
+        # parse args
+        config = parseAliasArgs(sys.argv)
 
         # get repository reference
         repo = getRepo(config)
 
-        # get args
-        token = sys.argv[1]
+        # build path
+        aliasPath = os.path.join(config.repositoryPath, "aliases.yml")
 
         # delete existing alias file if present
-        if os.path.exists(config.aliasPath):
-            os.remove(config.aliasPath)
+        if os.path.exists(aliasPath):
+            os.remove(aliasPath)
 
         # extract aliases
-        extractAliases(
-            repo,
-            config.aliasPath,
-            config.repositoryShortname,
-            token,
-            config.aliasSimilarityMaxDistance,
-        )
+        extractAliases(config, repo, aliasPath)
 
     finally:
-
         # close repo to avoid resource leaks
-        del repo
+        if "repo" in locals():
+            del repo
 
 
-def extractAliases(
-    repo: git.Repo, aliasPath: str, repoShortname: str, token: str, maxDistance: float
-):
+def extractAliases(config: Configuration, repo: git.Repo, aliasPath: str):
     commits = list(repo.iter_commits())
 
     # get all distinct author emails
@@ -74,8 +62,10 @@ def extractAliases(
 
     for email in Bar("Processing").iter(shasByEmail):
         sha = shasByEmail[email]
-        url = "https://api.github.com/repos/{}/commits/{}".format(repoShortname, sha)
-        request = requests.get(url, headers={"Authorization": "token " + token})
+        url = "https://api.github.com/repos/{}/{}/commits/{}".format(
+            config.repositoryOwner, config.repositoryName, sha
+        )
+        request = requests.get(url, headers={"Authorization": "token " + config.pat})
         commit = request.json()
 
         if not "author" in commit.keys():
@@ -96,7 +86,7 @@ def extractAliases(
         aliasEmails.append(email)
         usedAsValues[email] = login
 
-    if (len(emailsWithoutLogins) > 0):
+    if len(emailsWithoutLogins) > 0:
         for authorA in Bar("Processing").iter(emailsWithoutLogins):
             quickMatched = False
 
@@ -106,7 +96,7 @@ def extractAliases(
                     quickMatched = True
                     continue
 
-                if areSimilar(authorA, key, maxDistance):
+                if areSimilar(authorA, key, config.maxDistance):
                     alias = usedAsValues[key]
                     aliases[alias].append(authorA)
                     usedAsValues[authorA] = alias
@@ -122,7 +112,7 @@ def extractAliases(
                     quickMatched = True
                     continue
 
-                if areSimilar(authorA, key, maxDistance):
+                if areSimilar(authorA, key, config.maxDistance):
                     aliases[key].append(authorA)
                     usedAsValues[authorA] = key
                     quickMatched = True
@@ -136,7 +126,7 @@ def extractAliases(
                 if authorA == authorB:
                     continue
 
-                if areSimilar(authorA, authorB, maxDistance):
+                if areSimilar(authorA, authorB, config.maxDistance):
                     aliasedAuthor = aliases.setdefault(authorA, [])
                     aliasedAuthor.append(authorB)
                     usedAsValues[authorB] = authorA
