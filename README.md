@@ -1,14 +1,17 @@
 # General Notes
 
-## Summary
-This tool performs network and statistical analysis on GitHub repositories. The results can be used to detect community smells.
+## Tool Overview
+
+The purpose of this tool is twofold:
+
+1. Contribute to the list of existing community smells that developers need to be aware of.
+2. Provide developers with a tool to automatically detect community smells in their project. 
 
 ## Stack
 - Windows 10
 - VSCode 1.45.1
 - PowerShell 7.0.1
 - Python 3.8.3
-
 
 # Installation
 All required modules **must be installed** prior to running the tool.
