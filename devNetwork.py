@@ -1,10 +1,9 @@
 import sys, os, subprocess, shutil, stat
 import git
-import yaml
 import pkg_resources
 import sentistrength
 
-from configuration import Configuration, parseDevNetworkArgs
+from configuration import parseDevNetworkArgs
 from repoLoader import getRepo
 from aliasWorker import replaceAliases
 from commitAnalysis import commitAnalysis
@@ -14,6 +13,7 @@ from devAnalysis import devAnalysis
 from graphqlAnalysis.releaseAnalysis import releaseAnalysis
 from graphqlAnalysis.prAnalysis import prAnalysis
 from graphqlAnalysis.issueAnalysis import issueAnalysis
+from smellDetection import smellDetection
 from dateutil.relativedelta import relativedelta
 
 FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
@@ -147,8 +147,8 @@ def main(argv):
                 config,
             )
 
-        # open output directory
-        explore(config.repositoryPath)
+            # run smell detection
+            smellDetection(config, batchIdx)
 
     finally:
         # close repo to avoid resource leaks
