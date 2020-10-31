@@ -60,70 +60,78 @@ def smellDetection(config: Configuration, batchIdx: int):
 
 
 def buildMetricsList(results: dict):
+
+    # declare names to extract from the results file in the right order
+    names = [
+        "CommitCount",
+        "DaysActive",
+        "AuthorCount",
+        "SponsoredAuthorCount",
+        "PercentageSponsoredAuthors",
+        "TimezoneCount",
+        "AuthorActiveDays_mean",
+        "AuthorActiveDays_stdev",
+        "AuthorCommitCount_stdev",
+        "TimezoneAuthorCount_stdev",
+        "TimezoneCommitCount_stdev",
+        "CommitMessageSentiment_mean",
+        "CommitMessageSentiment_stdev",
+        "CommitMessageSentimentsPositive_count",
+        "CommitMessageSentimentsPositive_mean",
+        "CommitMessageSentimentsPositive_stdev",
+        "CommitMessageSentimentsNegative_count",
+        "CommitMessageSentimentsNegative_mean",
+        "Tag Count",
+        "TagCommitCount_stdev",
+        "commitCentrality_Density",
+        "commitCentrality_Community Count",
+        "commitCentrality_NumberHighCentralityAuthors",
+        "commitCentrality_PercentageHighCentralityAuthors",
+        "commitCentrality_Closeness_stdev",
+        "commitCentrality_Betweenness_stdev",
+        "commitCentrality_Centrality_stdev",
+        "commitCentrality_CommunityAuthorCount_stdev",
+        "commitCentrality_CommunityAuthorItemCount_stdev",
+        "NumberReleases",
+        "ReleaseAuthorCount_stdev",
+        "ReleaseCommitCount_stdev",
+        "NumberPRs",
+        "NumberPRComments",
+        "PRCommentsCount_mean",
+        "PRCommitsCount_stdev",
+        "PRCommentSentiments_stdev",
+        "PRParticipantsCount_mean",
+        "PRParticipantsCount_stdev",
+        "PRCountPositiveComments_count",
+        "PRCountPositiveComments_mean",
+        "PRCountNegativeComments_count",
+        "PRCountNegativeComments_mean",
+        "NumberIssues",
+        "NumberIssueComments",
+        "IssueCommentsPositive",
+        "IssueCommentsCount_mean",
+        "IssueCommentsCount_stdev",
+        "IssueCommentSentiments_stdev",
+        "IssueParticipantCount_mean",
+        "IssueParticipantCount_stdev",
+        "IssueCountPositiveComments_mean",
+        "IssueCountNegativeComments_count",
+        "IssueCountNegativeComments_mean",
+        "issuesAndPRsCentrality_Density",
+        "issuesAndPRsCentrality_Community Count",
+        "issuesAndPRsCentrality_NumberHighCentralityAuthors",
+        "issuesAndPRsCentrality_PercentageHighCentralityAuthors",
+        "issuesAndPRsCentrality_Closeness_stdev",
+        "issuesAndPRsCentrality_Betweenness_stdev",
+        "issuesAndPRsCentrality_Centrality_stdev",
+        "issuesAndPRsCentrality_CommunityAuthorCount_stdev",
+        "issuesAndPRsCentrality_CommunityAuthorItemCount_stdev",
+    ]
+
+    # build key/value list
     metrics = []
+    for name in names:
+        metrics.append(results.get(name, 0))
 
-    metrics.append(results.get("CommitCount", 0))
-    metrics.append(results.get("DaysActive", 0))
-    metrics.append(results.get("AuthorCount", 0))
-    metrics.append(results.get("SponsoredAuthorCount", 0))
-    metrics.append(results.get("PercentageSponsoredAuthors", 0))
-    metrics.append(results.get("TimezoneCount", 0))
-    metrics.append(results.get("AuthorActiveDays_mean", 0))
-    metrics.append(results.get("AuthorActiveDays_stdev", 0))
-    metrics.append(results.get("AuthorCommitCount_stdev", 0))
-    metrics.append(results.get("TimezoneAuthorCount_stdev", 0))
-    metrics.append(results.get("TimezoneCommitCount_stdev", 0))
-    metrics.append(results.get("CommitMessageSentiment_mean", 0))
-    metrics.append(results.get("CommitMessageSentiment_stdev", 0))
-    metrics.append(results.get("CommitMessageSentimentsPositive_count", 0))
-    metrics.append(results.get("CommitMessageSentimentsPositive_mean", 0))
-    metrics.append(results.get("CommitMessageSentimentsPositive_stdev", 0))
-    metrics.append(results.get("CommitMessageSentimentsNegative_count", 0))
-    metrics.append(results.get("CommitMessageSentimentsNegative_mean", 0))
-    metrics.append(results.get("Tag Count", 0))
-    metrics.append(results.get("TagCommitCount_stdev", 0))
-    metrics.append(results.get("commitCentrality_Density", 0))
-    metrics.append(results.get("commitCentrality_Community Count", 0))
-    metrics.append(results.get("commitCentrality_NumberHighCentralityAuthors", 0))
-    metrics.append(results.get("commitCentrality_PercentageHighCentralityAuthors", 0))
-    metrics.append(results.get("commitCentrality_Closeness_stdev", 0))
-    metrics.append(results.get("commitCentrality_Betweenness_stdev", 0))
-    metrics.append(results.get("commitCentrality_Centrality_stdev", 0))
-    metrics.append(results.get("commitCentrality_CommunityAuthorCount_stdev", 0))
-    metrics.append(results.get("commitCentrality_CommunityAuthorItemCount_stdev", 0))
-    metrics.append(results.get("NumberReleases", 0))
-    metrics.append(results.get("ReleaseAuthorCount_stdev", 0))
-    metrics.append(results.get("ReleaseCommitCount_stdev", 0))
-    metrics.append(results.get("NumberPRs", 0))
-    metrics.append(results.get("NumberPRComments", 0))
-    metrics.append(results.get("PRCommentsCount_mean", 0))
-    metrics.append(results.get("PRCommitsCount_stdev", 0))
-    metrics.append(results.get("PRCommentSentiments_stdev", 0))
-    metrics.append(results.get("PRParticipantsCount_mean", 0))
-    metrics.append(results.get("PRParticipantsCount_stdev", 0))
-    metrics.append(results.get("PRCountPositiveComments_count", 0))
-    metrics.append(results.get("PRCountPositiveComments_mean", 0))
-    metrics.append(results.get("PRCountNegativeComments_count", 0))
-    metrics.append(results.get("PRCountNegativeComments_mean", 0))
-    metrics.append(results.get("NumberIssues", 0))
-    metrics.append(results.get("NumberIssueComments", 0))
-    metrics.append(results.get("NumberIssueCommentsPositive", 0))
-    metrics.append(results.get("IssueCommentsCount_mean", 0))
-    metrics.append(results.get("IssueCommentsCount_stdev", 0))
-    metrics.append(results.get("IssueCommentSentiments_stdev", 0))
-    metrics.append(results.get("IssueParticipantCount_mean", 0))
-    metrics.append(results.get("IssueParticipantCount_stdev", 0))
-    metrics.append(results.get("IssueCountPositiveComments_mean", 0))
-    metrics.append(results.get("IssueCountNegativeComments_count", 0))
-    metrics.append(results.get("IssueCountNegativeComments_mean", 0))
-    metrics.append(results.get("issuesAndPRsCentrality_Density", 0))
-    metrics.append(results.get("issuesAndPRsCentrality_Community Count", 0))
-    metrics.append(results.get("issuesAndPRsCentrality_NumberHighCentralityAuthors", 0))
-    metrics.append(results.get("issuesAndPRsCentrality_PercentageHighCentralityAuthors", 0))
-    metrics.append(results.get("issuesAndPRsCentrality_Closeness_stdev", 0))
-    metrics.append(results.get("issuesAndPRsCentrality_Betweenness_stdev", 0))
-    metrics.append(results.get("issuesAndPRsCentrality_Centrality_stdev", 0))
-    metrics.append(results.get("issuesAndPRsCentrality_CommunityAuthorCount_stdev", 0))
-    metrics.append(results.get("issuesAndPRsCentrality_CommunityAuthorItemCount_stdev", 0))
-
+    # return as a 2D array
     return [metrics]
