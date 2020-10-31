@@ -1,5 +1,6 @@
 import os
 import git
+from matplotlib.figure import Figure
 import networkx as nx
 import csv
 import matplotlib.pyplot as plt
@@ -234,8 +235,8 @@ def prepareGraph(
         config.resultsPath,
     )
 
-    # output graph to PNG
-    print("Outputting graph to PNG")
+    # output graph
+    print("Outputting graph")
     graphFigure = plt.figure(5, figsize=(30, 30))
     nx.draw(
         G,
@@ -247,7 +248,7 @@ def prepareGraph(
         font_size=20,
     )
     graphFigure.savefig(
-        os.path.join(config.resultsPath, f"{outputPrefix}_{batchIdx}.png")
+        os.path.join(config.resultsPath, f"{outputPrefix}_{batchIdx}.pdf")
     )
 
 
