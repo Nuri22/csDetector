@@ -1,5 +1,6 @@
 import os
 import csv
+from perspectiveAnalysis import getToxicityPercentage
 import statsAnalysis as stats
 import sentistrength
 import graphqlAnalysis.graphqlAnalysisHelper as gql
@@ -22,7 +23,9 @@ def prAnalysis(
 ):
 
     print("Querying PRs")
-    batches = prRequest(config.pat, config.repositoryOwner, config.repositoryName, delta, batchDates)
+    batches = prRequest(
+        config.pat, config.repositoryOwner, config.repositoryName, delta, batchDates
+    )
 
     batchParticipants = list()
 
@@ -31,14 +34,15 @@ def prAnalysis(
 
         # extract data from batch
         prCount = len(batch)
-        prParticipants = list(
+        participants = list(
             pr["participants"] for pr in batch if len(pr["participants"]) > 0
         )
-        batchParticipants.append(prParticipants)
+        batchParticipants.append(participants)
 
         allComments = list()
         prPositiveComments = list()
         prNegativeComments = list()
+        generallyNegative = list()
 
         print(f"    Sentiments per PR", end="")
 
@@ -64,6 +68,7 @@ def prAnalysis(
                     prComments,
                     prPositiveComments,
                     prNegativeComments,
+                    generallyNegative,
                     semaphore,
                 ),
             )
@@ -76,6 +81,11 @@ def prAnalysis(
             thread.join()
 
         print("")
+
+        # get comment length stats
+        commentLengths = [len(c) for c in allComments]
+
+        generallyNegativeRatio = len(generallyNegative) / prCount
 
         print("    All sentiments")
 
@@ -92,9 +102,9 @@ def prAnalysis(
                 1 for _ in filter(lambda value: value <= -1, commentSentiments)
             )
 
-        # centrality.buildGraphQlNetwork(
-        #     batchIdx, prParticipants, "PRs", config.metricsPath
-        # )
+        toxicityPercentage = getToxicityPercentage(config, allComments)
+
+        centrality.buildGraphQlNetwork(batchIdx, participants, "PRs", config)
 
         print("    Writing results")
         with open(
@@ -107,6 +117,8 @@ def prAnalysis(
             w.writerow(["NumberPRComments", len(allComments)])
             w.writerow(["PRCommentsPositive", commentSentimentsPositive])
             w.writerow(["PRCommentsNegative", commentSentimentsNegative])
+            w.writerow(["PRCommentsNegativeRatio", generallyNegativeRatio])
+            w.writerow(["PRCommentsToxicityPercentage", toxicityPercentage])
 
         with open(
             os.path.join(config.metricsPath, f"PRCommits_{batchIdx}.csv"),
@@ -127,6 +139,14 @@ def prAnalysis(
             w.writerow(["PR Number", "Developer Count"])
             for pr in batch:
                 w.writerow([pr["number"], len(set(pr["participants"]))])
+
+        # output statistics
+        stats.outputStatistics(
+            batchIdx,
+            commentLengths,
+            "PRCommentsLength",
+            config.resultsPath,
+        )
 
         # output statistics
         stats.outputStatistics(
@@ -175,13 +195,13 @@ def prAnalysis(
 
 
 def analyzeSentiments(
-    senti, prComments, prPositiveComments, prNegativeComments, semaphore
+    senti, comments, positiveComments, negativeComments, generallyNegative, semaphore
 ):
     with semaphore:
         commentSentiments = (
-            senti.getSentiment(prComments, score="scale")
-            if len(prComments) > 1
-            else senti.getSentiment(prComments[0])
+            senti.getSentiment(comments, score="scale")
+            if len(comments) > 1
+            else senti.getSentiment(comments[0])
         )
 
         commentSentimentsPositive = sum(
@@ -193,8 +213,12 @@ def analyzeSentiments(
 
         lock = threading.Lock()
         with lock:
-            prPositiveComments.append(commentSentimentsPositive)
-            prNegativeComments.append(commentSentimentsNegative)
+            positiveComments.append(commentSentimentsPositive)
+            negativeComments.append(commentSentimentsNegative)
+
+            if commentSentimentsNegative / len(comments) > 0.5:
+                generallyNegative.append(True)
+
             print(f".", end="")
 
 

@@ -1,5 +1,6 @@
 import os
 import csv
+from random import randint
 import statsAnalysis as stats
 import sentistrength
 import graphqlAnalysis.graphqlAnalysisHelper as gql
@@ -12,6 +13,7 @@ from datetime import datetime
 from configuration import Configuration
 import threading
 from collections import Counter
+from perspectiveAnalysis import getToxicityPercentage
 
 
 def issueAnalysis(
@@ -22,7 +24,9 @@ def issueAnalysis(
 ):
 
     print("Querying issue comments")
-    batches = issueRequest(config.pat, config.repositoryOwner, config.repositoryName, delta, batchDates)
+    batches = issueRequest(
+        config.pat, config.repositoryOwner, config.repositoryName, delta, batchDates
+    )
 
     batchParticipants = list()
 
@@ -31,39 +35,40 @@ def issueAnalysis(
 
         # extract data from batch
         issueCount = len(batch)
-        issueParticipants = list(
+        participants = list(
             issue["participants"] for issue in batch if len(issue["participants"]) > 0
         )
-        batchParticipants.append(issueParticipants)
+        batchParticipants.append(participants)
 
         allComments = list()
         issuePositiveComments = list()
         issueNegativeComments = list()
+        generallyNegative = list()
 
         print(f"    Sentiments per issue", end="")
 
         semaphore = threading.Semaphore(15)
         threads = []
         for issue in batch:
-
-            prComments = list(
+            comments = list(
                 comment for comment in issue["comments"] if comment and comment.strip()
             )
 
-            if len(prComments) == 0:
+            if len(comments) == 0:
                 issuePositiveComments.append(0)
                 issueNegativeComments.append(0)
                 continue
 
-            allComments.extend(prComments)
+            allComments.extend(comments)
 
             thread = threading.Thread(
                 target=analyzeSentiments,
                 args=(
                     senti,
-                    prComments,
+                    comments,
                     issuePositiveComments,
                     issueNegativeComments,
+                    generallyNegative,
                     semaphore,
                 ),
             )
@@ -77,25 +82,30 @@ def issueAnalysis(
 
         print("")
 
+        # get comment length stats
+        commentLengths = [len(c) for c in allComments]
+
+        generallyNegativeRatio = len(generallyNegative) / issueCount
+
         print("    All sentiments")
 
         # analyze comment issue sentiment
-        issueCommentSentiments = []
-        issueCommentSentimentsPositive = 0
-        issueCommentSentimentsNegative = 0
+        commentSentiments = []
+        commentSentimentsPositive = 0
+        commentSentimentsNegative = 0
 
         if len(allComments) > 0:
-            issueCommentSentiments = senti.getSentiment(allComments)
-            issueCommentSentimentsPositive = sum(
-                1 for _ in filter(lambda value: value >= 1, issueCommentSentiments)
+            commentSentiments = senti.getSentiment(allComments)
+            commentSentimentsPositive = sum(
+                1 for _ in filter(lambda value: value >= 1, commentSentiments)
             )
-            issueCommentSentimentsNegative = sum(
-                1 for _ in filter(lambda value: value <= -1, issueCommentSentiments)
+            commentSentimentsNegative = sum(
+                1 for _ in filter(lambda value: value <= -1, commentSentiments)
             )
 
-        # centrality.buildGraphQlNetwork(
-        #     batchIdx, issueParticipants, "Issues", config.metricsPath
-        # )
+        toxicityPercentage = getToxicityPercentage(config, allComments)
+
+        centrality.buildGraphQlNetwork(batchIdx, participants, "Issues", config)
 
         print("Writing GraphQL analysis results")
         with open(
@@ -106,13 +116,13 @@ def issueAnalysis(
             w = csv.writer(f, delimiter=",")
             w.writerow(["NumberIssues", len(batch)])
             w.writerow(["NumberIssueComments", len(allComments)])
-            w.writerow(["NumberIssueCommentsPositive", issueCommentSentimentsPositive])
-            w.writerow(["NumberIssueCommentsNegative", issueCommentSentimentsNegative])
+            w.writerow(["IssueCommentsPositive", commentSentimentsPositive])
+            w.writerow(["IssueCommentsNegative", commentSentimentsNegative])
+            w.writerow(["IssueCommentsNegativeRatio", generallyNegativeRatio])
+            w.writerow(["IssueCommentsToxicityPercentage", toxicityPercentage])
 
         with open(
-            os.path.join(
-                config.metricsPath, f"issueCommentsCount_{batchIdx}.csv"
-            ),
+            os.path.join(config.metricsPath, f"issueCommentsCount_{batchIdx}.csv"),
             "a",
             newline="",
         ) as f:
@@ -122,9 +132,7 @@ def issueAnalysis(
                 w.writerow([issue["number"], len(issue["comments"])])
 
         with open(
-            os.path.join(
-                config.metricsPath, f"issueParticipantCount_{batchIdx}.csv"
-            ),
+            os.path.join(config.metricsPath, f"issueParticipantCount_{batchIdx}.csv"),
             "a",
             newline="",
         ) as f:
@@ -136,6 +144,13 @@ def issueAnalysis(
         # output statistics
         stats.outputStatistics(
             batchIdx,
+            commentLengths,
+            "IssueCommentsLength",
+            config.resultsPath,
+        )
+
+        stats.outputStatistics(
+            batchIdx,
             [len(issue["comments"]) for issue in batch],
             "IssueCommentsCount",
             config.resultsPath,
@@ -143,7 +158,7 @@ def issueAnalysis(
 
         stats.outputStatistics(
             batchIdx,
-            issueCommentSentiments,
+            commentSentiments,
             "IssueCommentSentiments",
             config.resultsPath,
         )
@@ -173,10 +188,15 @@ def issueAnalysis(
 
 
 def analyzeSentiments(
-    senti, prComments, prPositiveComments, prNegativeComments, semaphore
+    senti, comments, positiveComments, negativeComments, generallyNegative, semaphore
 ):
     with semaphore:
-        commentSentiments = senti.getSentiment(prComments)
+        commentSentiments = (
+            senti.getSentiment(comments, score="scale")
+            if len(comments) > 1
+            else senti.getSentiment(comments[0])
+        )
+
         commentSentimentsPositive = sum(
             1 for _ in filter(lambda value: value >= 1, commentSentiments)
         )
@@ -186,8 +206,12 @@ def analyzeSentiments(
 
         lock = threading.Lock()
         with lock:
-            prPositiveComments.append(commentSentimentsPositive)
-            prNegativeComments.append(commentSentimentsNegative)
+            positiveComments.append(commentSentimentsPositive)
+            negativeComments.append(commentSentimentsNegative)
+
+            if commentSentimentsNegative / len(comments) > 0.5:
+                generallyNegative.append(True)
+
             print(f".", end="")
 
 
