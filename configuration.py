@@ -10,12 +10,14 @@ class Configuration:
         sentiStrengthPath: int,
         maxDistance: int,
         pat: str,
+        googleKey: str,
     ):
         self.repositoryUrl = repositoryUrl
         self.outputPath = outputPath
         self.sentiStrengthPath = sentiStrengthPath
         self.maxDistance = maxDistance
         self.pat = pat
+        self.googleKey = googleKey
 
         # parse repo name into owner and project name
         split = self.repositoryUrl.split("/")
@@ -72,7 +74,7 @@ def parseAliasArgs(args: Sequence[str]):
 
     args = parser.parse_args()
     config = Configuration(
-        args.repositoryUrl, args.outputPath, "", args.maxDistance, args.pat
+        args.repositoryUrl, args.outputPath, "", args.maxDistance, args.pat, ""
     )
 
     return config
@@ -89,6 +91,13 @@ def parseDevNetworkArgs(args: Sequence[str]):
         "-p",
         "--pat",
         help="GitHub PAT (personal access token) used for querying the GitHub API",
+        required=True,
+    )
+
+    parser.add_argument(
+        "-g",
+        "--googleKey",
+        help="Google Cloud API Key used for authentication with the Perspective API",
         required=True,
     )
 
@@ -115,7 +124,12 @@ def parseDevNetworkArgs(args: Sequence[str]):
 
     args = parser.parse_args()
     config = Configuration(
-        args.repositoryUrl, args.outputPath, args.sentiStrengthPath, 0, args.pat
+        args.repositoryUrl,
+        args.outputPath,
+        args.sentiStrengthPath,
+        0,
+        args.pat,
+        args.googleKey,
     )
 
     return config
