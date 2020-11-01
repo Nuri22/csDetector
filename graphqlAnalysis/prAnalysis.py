@@ -1,5 +1,7 @@
+import math
 import os
 import csv
+import sys
 from perspectiveAnalysis import getToxicityPercentage
 import statsAnalysis as stats
 import sentistrength
@@ -50,22 +52,49 @@ def prAnalysis(
         threads = []
         for pr in batch:
 
-            prComments = list(
+            comments = list(
                 comment for comment in pr["comments"] if comment and comment.strip()
             )
 
-            if len(prComments) == 0:
+            # split comments that are longer than 20KB
+            splitComments = []
+            for comment in comments:
+
+                # calc number of chunks
+                byteChunks = math.ceil(sys.getsizeof(comment) / (20 * 1024))
+                if byteChunks > 1:
+
+                    # calc desired max length of each chunk
+                    chunkLength = math.floor(len(comment) / byteChunks)
+
+                    # divide comment into chunks
+                    chunks = [
+                        comment[i * chunkLength : i * chunkLength + chunkLength]
+                        for i in range(0, byteChunks)
+                    ]
+
+                    # save chunks
+                    splitComments.extend(chunks)
+
+                else:
+                    # append comment as-is
+                    splitComments.append(comment)
+
+            # re-assign comments after chunking
+            comments = splitComments
+
+            if len(comments) == 0:
                 prPositiveComments.append(0)
                 prNegativeComments.append(0)
                 continue
 
-            allComments.extend(prComments)
+            allComments.extend(comments)
 
             thread = threading.Thread(
                 target=analyzeSentiments,
                 args=(
                     senti,
-                    prComments,
+                    comments,
                     prPositiveComments,
                     prNegativeComments,
                     generallyNegative,
