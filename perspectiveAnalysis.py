@@ -2,6 +2,7 @@ from datetime import datetime
 import json
 import time
 import requests
+import math
 
 from typing import List
 from configuration import Configuration
@@ -14,7 +15,7 @@ def getToxicityPercentage(config: Configuration, comments: List):
     buffer = 5
     queryLimit = (qpsLimit * 60) - buffer
 
-    toxicityMinutes = int(len(comments) / queryLimit)
+    toxicityMinutes = math.ceil(len(comments) / queryLimit)
     print(
         f"    Toxicity per comment, expecting around {toxicityMinutes} minute(s) completion time",
         end="",
@@ -54,9 +55,7 @@ def getToxicityPercentage(config: Configuration, comments: List):
         except:
             print()
             e = dict["error"]
-            raise Exception(
-                f'Error {e["code"]} {e["status"]}: {e["message"]}'
-            )
+            raise Exception(f'Error {e["code"]} {e["status"]}: {e["message"]}')
 
         # add to results store if toxic
         if toxicity >= 0.5:
