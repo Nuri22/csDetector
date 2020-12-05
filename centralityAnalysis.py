@@ -1,6 +1,5 @@
 import os
 import git
-from matplotlib.figure import Figure
 import networkx as nx
 import csv
 import matplotlib.pyplot as plt
@@ -13,31 +12,10 @@ from progress.bar import Bar
 from collections import Counter
 from utils import authorIdExtractor
 from statsAnalysis import outputStatistics
-from configuration import Configuration
 
 
-def centralityAnalysis(
-    commits: List[git.Commit],
-    delta: relativedelta,
-    batchDates: List[datetime],
-    config: Configuration,
-):
+def centralityAnalysis(repo: git.Repo, commits: List[git.Commit], outputDir: str):
 
-    # work with batched commits
-    for idx, batchStartDate in enumerate(batchDates):
-        batchEndDate = batchStartDate + delta
-
-        batch = [
-            commit
-            for commit in commits
-            if commit.committed_datetime >= batchStartDate
-            and commit.committed_datetime < batchEndDate
-        ]
-
-        processBatch(idx, batch, config)
-
-
-def processBatch(batchIdx: int, commits: List[git.Commit], config: Configuration):
     allRelatedAuthors = {}
     authorCommits = Counter({})
 
@@ -54,6 +32,12 @@ def processBatch(batchIdx: int, commits: List[git.Commit], config: Configuration
         earliestDate = commitDate + relativedelta(months=-1)
         latestDate = commitDate + relativedelta(months=+1)
 
+        # find authors related to this commit
+        #        commitRelatedCommits = commit.iter_items(
+        #                repo, 'master',
+        #                after=earliestDate.strftime('%Y-%m-%d'),
+        #                before=latestDate.strftime('%Y-%m-%d'))
+
         commitRelatedCommits = filter(
             lambda c: findRelatedCommits(author, earliestDate, latestDate, c), commits
         )
@@ -65,43 +49,6 @@ def processBatch(batchIdx: int, commits: List[git.Commit], config: Configuration
         # get current related authors collection and update it
         authorRelatedAuthors = allRelatedAuthors.setdefault(author, set())
         authorRelatedAuthors.update(commitRelatedAuthors)
-
-    prepareGraph(allRelatedAuthors, authorCommits, batchIdx, "commitCentrality", config)
-
-
-def buildGraphQlNetwork(batchIdx: int, batch: list, prefix: str, config: Configuration):
-    allRelatedAuthors = {}
-    authorItems = Counter({})
-
-    # for all commits...
-    print("Analyzing centrality")
-    for authors in batch:
-
-        for author in authors:
-
-            # increase author commit count
-            authorItems.update({author: 1})
-
-            # get current related authors collection and update it
-            relatedAuthors = set(
-                relatedAuthor
-                for otherAuthors in batch
-                for relatedAuthor in otherAuthors
-                if author in otherAuthors and relatedAuthor != author
-            )
-            authorRelatedAuthors = allRelatedAuthors.setdefault(author, set())
-            authorRelatedAuthors.update(relatedAuthors)
-
-    prepareGraph(allRelatedAuthors, authorItems, batchIdx, prefix, config)
-
-
-def prepareGraph(
-    allRelatedAuthors: dict,
-    authorItemCounts: Counter,
-    batchIdx: int,
-    outputPrefix: str,
-    config: Configuration,
-):
 
     # prepare graph
     print("Preparing NX graph")
@@ -123,7 +70,7 @@ def prepareGraph(
     try:
         for idx, community in enumerate(greedy_modularity_communities(G)):
             authorCount = len(community)
-            communityCommitCount = sum(authorItemCounts[author] for author in community)
+            communityCommitCount = sum(authorCommits[author] for author in community)
             row = [authorCount, communityCommitCount]
             modularity.append(row)
     except ZeroDivisionError:
@@ -142,21 +89,15 @@ def prepareGraph(
     print("Outputting CSVs")
 
     # output non-tabular results
-    with open(
-        os.path.join(config.resultsPath, f"results_{batchIdx}.csv"), "a", newline=""
-    ) as f:
+    with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
-        w.writerow([f"{outputPrefix}_Density", density])
-        w.writerow([f"{outputPrefix}_Community Count", len(modularity)])
+        w.writerow(["Density", density])
+        w.writerow(["Community Count", len(modularity)])
 
     # output community information
-    with open(
-        os.path.join(config.metricsPath, f"{outputPrefix}_community_{batchIdx}.csv"),
-        "a",
-        newline="",
-    ) as f:
+    with open(os.path.join(outputDir, "community.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
-        w.writerow(["Community Index", "Author Count", "Item Count"])
+        w.writerow(["Community Index", "Author Count", "Commit Count"])
         for idx, community in enumerate(modularity):
             w.writerow([idx + 1, community[0], community[1]])
 
@@ -173,11 +114,7 @@ def prepareGraph(
         combined[key] = single
 
     # output tabular results
-    with open(
-        os.path.join(config.metricsPath, f"{outputPrefix}_centrality_{batchIdx}.csv"),
-        "w",
-        newline="",
-    ) as f:
+    with open(os.path.join(outputDir, "centrality.csv"), "w", newline="") as f:
         w = csv.DictWriter(f, ["Author", "Closeness", "Betweenness", "Centrality"])
         w.writeheader()
 
@@ -185,58 +122,34 @@ def prepareGraph(
             w.writerow(combined[key])
 
     # output high centrality authors
-    with open(
-        os.path.join(config.resultsPath, f"results_{batchIdx}.csv"), "a", newline=""
-    ) as f:
+    with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
         w = csv.writer(f, delimiter=",")
-        w.writerow(
-            [f"{outputPrefix}_NumberHighCentralityAuthors", numberHighCentralityAuthors]
-        )
-        w.writerow(
-            [
-                f"{outputPrefix}_PercentageHighCentralityAuthors",
-                percentageHighCentralityAuthors,
-            ]
-        )
+        w.writerow(["NumberHighCentralityAuthors", numberHighCentralityAuthors])
+        w.writerow(["PercentageHighCentralityAuthors", percentageHighCentralityAuthors])
 
     # output statistics
     outputStatistics(
-        batchIdx,
-        [value for key, value in closeness.items()],
-        f"{outputPrefix}_Closeness",
-        config.resultsPath,
+        [value for key, value in closeness.items()], "Closeness", outputDir,
     )
 
     outputStatistics(
-        batchIdx,
-        [value for key, value in betweenness.items()],
-        f"{outputPrefix}_Betweenness",
-        config.resultsPath,
+        [value for key, value in betweenness.items()], "Betweenness", outputDir,
     )
 
     outputStatistics(
-        batchIdx,
-        [value for key, value in centrality.items()],
-        f"{outputPrefix}_Centrality",
-        config.resultsPath,
+        [value for key, value in centrality.items()], "Centrality", outputDir,
     )
 
     outputStatistics(
-        batchIdx,
-        [community[0] for community in modularity],
-        f"{outputPrefix}_CommunityAuthorCount",
-        config.resultsPath,
+        [community[0] for community in modularity], "CommunityAuthorCount", outputDir,
     )
 
     outputStatistics(
-        batchIdx,
-        [community[1] for community in modularity],
-        f"{outputPrefix}_CommunityAuthorItemCount",
-        config.resultsPath,
+        [community[1] for community in modularity], "CommunityCommitCount", outputDir,
     )
 
-    # output graph
-    print("Outputting graph")
+    # output graph to PNG
+    print("Outputting graph to PNG")
     graphFigure = plt.figure(5, figsize=(30, 30))
     nx.draw(
         G,
@@ -247,9 +160,7 @@ def prepareGraph(
         linewidths=2,
         font_size=20,
     )
-    graphFigure.savefig(
-        os.path.join(config.resultsPath, f"{outputPrefix}_{batchIdx}.pdf")
-    )
+    graphFigure.savefig(os.path.join(outputDir, "graph.png"))
 
 
 # helper functions
