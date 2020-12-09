@@ -251,69 +251,6 @@ def analyzeSentiments(
             print(f".", end="")
 
 
-def prRequest(
-    pat: str, owner: str, name: str, delta: relativedelta, batchDates: List[datetime]
-):
-    query = buildPrRequestQuery(owner, name, None)
-
-    # prepare batches
-    batches = []
-    batch = None
-    batchStartDate = None
-    batchEndDate = None
-
-    while True:
-
-        # get page
-        result = gql.runGraphqlRequest(pat, query)
-        print("...")
-
-        # extract nodes
-        nodes = result["repository"]["pullRequests"]["nodes"]
-
-        # add results
-        for node in nodes:
-
-            createdAt = isoparse(node["createdAt"])
-
-            if batchEndDate == None or (
-                createdAt > batchEndDate and len(batches) < len(batchDates) - 1
-            ):
-
-                if batch != None:
-                    batches.append(batch)
-
-                batchStartDate = batchDates[len(batches)]
-                batchEndDate = batchStartDate + delta
-
-                batch = []
-
-            pr = {
-                "number": node["number"],
-                "createdAt": createdAt,
-                "comments": list(c["bodyText"] for c in node["comments"]["nodes"]),
-                "commitCount": node["commits"]["totalCount"],
-                "participants": list(),
-            }
-
-            # participants
-            for user in node["participants"]["nodes"]:
-                gql.addLogin(user, pr["participants"])
-
-            batch.append(pr)
-
-        # check for next page
-        pageInfo = result["repository"]["pullRequests"]["pageInfo"]
-        if not pageInfo["hasNextPage"]:
-            break
-
-        cursor = pageInfo["endCursor"]
-        query = buildPrRequestQuery(owner, name, cursor)
-
-    if batch != None:
-        batches.append(batch)
-
-    return batches
 
 
 def buildPrRequestQuery(owner: str, name: str, cursor: str):
