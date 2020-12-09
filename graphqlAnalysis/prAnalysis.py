@@ -1,238 +1,34 @@
-import math
 import os
 import csv
-import sys
-from perspectiveAnalysis import getToxicityPercentage
 import statsAnalysis as stats
 import sentistrength
 import graphqlAnalysis.graphqlAnalysisHelper as gql
-import centralityAnalysis as centrality
-from dateutil.relativedelta import relativedelta
-from dateutil.parser import isoparse
-from typing import List
-from datetime import datetime
-from configuration import Configuration
-import itertools
-import threading
-from collections import Counter
 
 
 def prAnalysis(
-    config: Configuration,
-    senti: sentistrength.PySentiStr,
-    delta: relativedelta,
-    batchDates: List[datetime],
+    pat: str, senti: sentistrength.PySentiStr, repoShortName: str, outputDir: str
 ):
+
+    # split repo by owner and name
+    owner, name = gql.splitRepoName(repoShortName)
 
     print("Querying PRs")
-    batches = prRequest(
-        config.pat, config.repositoryOwner, config.repositoryName, delta, batchDates
-    )
+    (
+        prCount,
+        prCommentCount,
+        prCommitCounts,
+        prComments,
+        participants,
+        participantCount,
+    ) = prRequest(pat, owner, name)
 
-    batchParticipants = list()
+    # analyze sentiments
+    commentSentiments = []
+    commentSentimentsPositive = 0
+    commentSentimentsNegative = 0
 
-    for batchIdx, batch in enumerate(batches):
-        print(f"Analyzing PR batch #{batchIdx}")
-
-        # extract data from batch
-        prCount = len(batch)
-        participants = list(
-            pr["participants"] for pr in batch if len(pr["participants"]) > 0
-        )
-        batchParticipants.append(participants)
-
-        allComments = list()
-        prPositiveComments = list()
-        prNegativeComments = list()
-        generallyNegative = list()
-
-        print(f"    Sentiments per PR", end="")
-
-        semaphore = threading.Semaphore(15)
-        threads = []
-        for pr in batch:
-
-            comments = list(
-                comment for comment in pr["comments"] if comment and comment.strip()
-            )
-
-            # split comments that are longer than 20KB
-            splitComments = []
-            for comment in comments:
-
-                # calc number of chunks
-                byteChunks = math.ceil(sys.getsizeof(comment) / (20 * 1024))
-                if byteChunks > 1:
-
-                    # calc desired max length of each chunk
-                    chunkLength = math.floor(len(comment) / byteChunks)
-
-                    # divide comment into chunks
-                    chunks = [
-                        comment[i * chunkLength : i * chunkLength + chunkLength]
-                        for i in range(0, byteChunks)
-                    ]
-
-                    # save chunks
-                    splitComments.extend(chunks)
-
-                else:
-                    # append comment as-is
-                    splitComments.append(comment)
-
-            # re-assign comments after chunking
-            comments = splitComments
-
-            if len(comments) == 0:
-                prPositiveComments.append(0)
-                prNegativeComments.append(0)
-                continue
-
-            allComments.extend(comments)
-
-            thread = threading.Thread(
-                target=analyzeSentiments,
-                args=(
-                    senti,
-                    comments,
-                    prPositiveComments,
-                    prNegativeComments,
-                    generallyNegative,
-                    semaphore,
-                ),
-            )
-            threads.append(thread)
-
-        for thread in threads:
-            thread.start()
-
-        for thread in threads:
-            thread.join()
-
-        print("")
-
-        # get comment length stats
-        commentLengths = [len(c) for c in allComments]
-
-        generallyNegativeRatio = len(generallyNegative) / prCount
-
-        print("    All sentiments")
-
-        commentSentiments = []
-        commentSentimentsPositive = 0
-        commentSentimentsNegative = 0
-
-        if len(allComments) > 0:
-            commentSentiments = senti.getSentiment(allComments)
-            commentSentimentsPositive = sum(
-                1 for _ in filter(lambda value: value >= 1, commentSentiments)
-            )
-            commentSentimentsNegative = sum(
-                1 for _ in filter(lambda value: value <= -1, commentSentiments)
-            )
-
-        toxicityPercentage = getToxicityPercentage(config, allComments)
-
-        centrality.buildGraphQlNetwork(batchIdx, participants, "PRs", config)
-
-        print("    Writing results")
-        with open(
-            os.path.join(config.resultsPath, f"results_{batchIdx}.csv"),
-            "a",
-            newline="",
-        ) as f:
-            w = csv.writer(f, delimiter=",")
-            w.writerow(["NumberPRs", prCount])
-            w.writerow(["NumberPRComments", len(allComments)])
-            w.writerow(["PRCommentsPositive", commentSentimentsPositive])
-            w.writerow(["PRCommentsNegative", commentSentimentsNegative])
-            w.writerow(["PRCommentsNegativeRatio", generallyNegativeRatio])
-            w.writerow(["PRCommentsToxicityPercentage", toxicityPercentage])
-
-        with open(
-            os.path.join(config.metricsPath, f"PRCommits_{batchIdx}.csv"),
-            "a",
-            newline="",
-        ) as f:
-            w = csv.writer(f, delimiter=",")
-            w.writerow(["PR Number", "Commit Count"])
-            for pr in batch:
-                w.writerow([pr["number"], pr["commitCount"]])
-
-        with open(
-            os.path.join(config.metricsPath, f"PRParticipants_{batchIdx}.csv"),
-            "a",
-            newline="",
-        ) as f:
-            w = csv.writer(f, delimiter=",")
-            w.writerow(["PR Number", "Developer Count"])
-            for pr in batch:
-                w.writerow([pr["number"], len(set(pr["participants"]))])
-
-        # output statistics
-        stats.outputStatistics(
-            batchIdx,
-            commentLengths,
-            "PRCommentsLength",
-            config.resultsPath,
-        )
-
-        # output statistics
-        stats.outputStatistics(
-            batchIdx,
-            [len(pr["comments"]) for pr in batch],
-            "PRCommentsCount",
-            config.resultsPath,
-        )
-
-        stats.outputStatistics(
-            batchIdx,
-            [pr["commitCount"] for pr in batch],
-            "PRCommitsCount",
-            config.resultsPath,
-        )
-
-        stats.outputStatistics(
-            batchIdx,
-            commentSentiments,
-            "PRCommentSentiments",
-            config.resultsPath,
-        )
-
-        stats.outputStatistics(
-            batchIdx,
-            [len(set(pr["participants"])) for pr in batch],
-            "PRParticipantsCount",
-            config.resultsPath,
-        )
-
-        stats.outputStatistics(
-            batchIdx,
-            prPositiveComments,
-            "PRCountPositiveComments",
-            config.resultsPath,
-        )
-
-        stats.outputStatistics(
-            batchIdx,
-            prNegativeComments,
-            "PRCountNegativeComments",
-            config.resultsPath,
-        )
-
-    return batchParticipants
-
-
-def analyzeSentiments(
-    senti, comments, positiveComments, negativeComments, generallyNegative, semaphore
-):
-    with semaphore:
-        commentSentiments = (
-            senti.getSentiment(comments, score="scale")
-            if len(comments) > 1
-            else senti.getSentiment(comments[0])
-        )
-
+    if len(prComments) > 0:
+        commentSentiments = senti.getSentiment(prComments)
         commentSentimentsPositive = sum(
             1 for _ in filter(lambda value: value >= 1, commentSentiments)
         )
@@ -240,30 +36,138 @@ def analyzeSentiments(
             1 for _ in filter(lambda value: value <= -1, commentSentiments)
         )
 
-        lock = threading.Lock()
-        with lock:
-            positiveComments.append(commentSentimentsPositive)
-            negativeComments.append(commentSentimentsNegative)
+    print("Writing results")
+    with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
+        w = csv.writer(f, delimiter=",")
+        w.writerow(["NumberPRs", prCount])
+        w.writerow(["NumberPRComments", prCommentCount])
+        w.writerow(["PRCommentsPositive", commentSentimentsPositive])
+        w.writerow(["PRCommentsNegative", commentSentimentsNegative])
 
-            if commentSentimentsNegative / len(comments) > 0.5:
-                generallyNegative.append(True)
+    with open(os.path.join(outputDir, "PRCommits.csv"), "a", newline="") as f:
+        w = csv.writer(f, delimiter=",")
+        w.writerow(["PR Number", "Commit Count"])
+        for key, value in prCommitCounts.items():
+            w.writerow([key, value])
 
-            print(f".", end="")
+    with open(os.path.join(outputDir, "PRParticipants.csv"), "a", newline="") as f:
+        w = csv.writer(f, delimiter=",")
+        w.writerow(["PR Number", "Developer Count"])
+        for key, value in participantCount.items():
+            w.writerow([key, value])
+
+    stats.outputStatistics(
+        [value for key, value in prCommitCounts.items()], "PRCommitsCount", outputDir
+    )
+
+    stats.outputStatistics(
+        commentSentiments, "PRCommentSentiments", outputDir,
+    )
+
+    stats.outputStatistics(
+        [value for key, value in participantCount.items()],
+        "PRParticipantsCount",
+        outputDir,
+    )
+
+    return participants
 
 
+def prRequest(pat: str, owner: str, name: str):
+    query = buildPrRequestQuery(owner, name, None)
+
+    prCount = 0
+    prCommitCounts = {}
+    prComments = []
+    prCommentCount = 0
+    participants = set()
+    participantCount = dict()
+
+    while True:
+
+        # get page
+        result = gql.runGraphqlRequest(pat, query)
+
+        # extract nodes
+        nodes = result["repository"]["pullRequests"]["nodes"]
+
+        if prCount == 0:
+            prCount = result["repository"]["pullRequests"]["totalCount"]
+
+        # add results
+        for node in nodes:
+            prCommentCount += node["comments"]["totalCount"]
+            commitCount = node["commits"]["totalCount"]
+            prCommitCounts[node["number"]] = commitCount
+
+            prComments.extend(c["bodyText"] for c in node["comments"]["nodes"])
+
+            prParticipantCount = 0
+
+            # author
+            if gql.tryAddLogin(node["author"], participants):
+                prParticipantCount += 1
+
+            # editor
+            if gql.tryAddLogin(node["editor"], participants):
+                prParticipantCount += 1
+
+            # assignees
+            for user in node["assignees"]["nodes"]:
+                if gql.tryAddLogin(user, participants):
+                    prParticipantCount += 1
+
+            # participants
+            for user in node["participants"]["nodes"]:
+                if gql.tryAddLogin(user, participants):
+                    prParticipantCount += 1
+
+            participantCount[node["number"]] = prParticipantCount
+
+        # check for next page
+        pageInfo = result["repository"]["pullRequests"]["pageInfo"]
+        if not pageInfo["hasNextPage"]:
+            break
+
+        cursor = pageInfo["endCursor"]
+        query = buildPrRequestQuery(owner, name, cursor)
+
+    return (
+        prCount,
+        prCommentCount,
+        prCommitCounts,
+        prComments,
+        participants,
+        participantCount,
+    )
 
 
 def buildPrRequestQuery(owner: str, name: str, cursor: str):
     return """{{
         repository(owner: "{0}", name: "{1}") {{
             pullRequests(first:100{2}) {{
+                totalCount
                 pageInfo {{
                     endCursor
                     hasNextPage
                 }}
                 nodes {{
                     number
-                    createdAt
+                    author {{
+                        ... on User {{
+                            login
+                        }}
+                    }}
+                    editor {{
+                        ... on User {{
+                            login
+                        }}
+                    }}
+                    assignees(first: 100) {{
+                        nodes {{
+                            login
+                        }}
+                    }}
                     participants(first: 100) {{
                         nodes {{
                             login
@@ -273,9 +177,11 @@ def buildPrRequestQuery(owner: str, name: str, cursor: str):
                         totalCount
                     }}
                     comments(first: 100) {{
+                        totalCount
                         nodes {{
                             bodyText
                         }}
+                        totalCount
                     }}
                 }}
             }}
