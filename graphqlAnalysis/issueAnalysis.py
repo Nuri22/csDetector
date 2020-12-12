@@ -1,259 +1,95 @@
-import io
 import os
 import csv
-import math
-import sys
-from random import randint
 import statsAnalysis as stats
 import sentistrength
 import graphqlAnalysis.graphqlAnalysisHelper as gql
-import centralityAnalysis as centrality
 from functools import reduce
-from dateutil.relativedelta import relativedelta
-from dateutil.parser import isoparse
-from typing import List
-from datetime import datetime
-from configuration import Configuration
-import threading
-from collections import Counter
-from perspectiveAnalysis import getToxicityPercentage
 
 
 def issueAnalysis(
-    config: Configuration,
-    senti: sentistrength.PySentiStr,
-    delta: relativedelta,
-    batchDates: List[datetime],
+    pat: str, senti: sentistrength.PySentiStr, repoShortName: str, outputDir: str
 ):
+
+    # split repo by owner and name
+    owner, name = gql.splitRepoName(repoShortName)
 
     print("Querying issue comments")
-    batches = issueRequest(
-        config.pat, config.repositoryOwner, config.repositoryName, delta, batchDates
+    (issueCount, issues, participants) = issueRequest(pat, owner, name)
+
+    commentCount = 0
+    issueComments = []
+    for key, value in issues.items():
+        commentCount += value["commentCount"]
+        comments = value["comments"]
+
+        # remove empty comments from list
+        while "" in comments:
+            comments.remove("")
+
+        # add to main list
+        issueComments.extend(comments)
+
+    # analyze comment issue sentiment
+    issueCommentSentiments = []
+    issueCommentSentimentsPositive = 0
+    issueCommentSentimentsNegative = 0
+
+    if len(issueComments) > 0:
+        issueCommentSentiments = senti.getSentiment(issueComments)
+        issueCommentSentimentsPositive = sum(
+            1 for _ in filter(lambda value: value >= 1, issueCommentSentiments)
+        )
+        issueCommentSentimentsNegative = sum(
+            1 for _ in filter(lambda value: value <= -1, issueCommentSentiments)
+        )
+
+    print("Writing GraphQL analysis results")
+    with open(os.path.join(outputDir, "project.csv"), "a", newline="") as f:
+        w = csv.writer(f, delimiter=",")
+        w.writerow(["NumberIssues", issueCount])
+        w.writerow(["NumberIssueComments", commentCount])
+        w.writerow(["NumberIssueCommentsPositive", issueCommentSentimentsPositive])
+        w.writerow(["NumberIssueCommentsNegative", issueCommentSentimentsNegative])
+
+    with open(os.path.join(outputDir, "issueCommentsCount.csv"), "a", newline="") as f:
+        w = csv.writer(f, delimiter=",")
+        w.writerow(["Issue Number", "Commit Count"])
+        for key, value in issues.items():
+            w.writerow([key, value["commentCount"]])
+
+    with open(
+        os.path.join(outputDir, "issueParticipantCount.csv"), "a", newline=""
+    ) as f:
+        w = csv.writer(f, delimiter=",")
+        w.writerow(["Issue Number", "Developer Count"])
+        for key, value in issues.items():
+            w.writerow([key, value["participantCount"]])
+
+    # output statistics
+    stats.outputStatistics(
+        [value["commentCount"] for key, value in issues.items()],
+        "IssueCommentsCount",
+        outputDir,
     )
 
-    batchParticipants = list()
+    stats.outputStatistics(
+        issueCommentSentiments, "IssueCommentSentiments", outputDir,
+    )
 
-    for batchIdx, batch in enumerate(batches):
-        print(f"Analyzing issue batch #{batchIdx}")
+    stats.outputStatistics(
+        [value["participantCount"] for key, value in issues.items()],
+        "IssueParticipantCount",
+        outputDir,
+    )
 
-        # extract data from batch
-        issueCount = len(batch)
-        participants = list(
-            issue["participants"] for issue in batch if len(issue["participants"]) > 0
-        )
-        batchParticipants.append(participants)
-
-        allComments = list()
-        issuePositiveComments = list()
-        issueNegativeComments = list()
-        generallyNegative = list()
-
-        print(f"    Sentiments per issue", end="")
-
-        semaphore = threading.Semaphore(15)
-        threads = []
-        for issue in batch:
-            comments = list(
-                comment for comment in issue["comments"] if comment and comment.strip()
-            )
-
-            # split comments that are longer than 20KB
-            splitComments = []
-            for comment in comments:
-
-                # calc number of chunks
-                byteChunks = math.ceil(sys.getsizeof(comment) / (20 * 1024))
-                if byteChunks > 1:
-
-                    # calc desired max length of each chunk
-                    chunkLength = math.floor(len(comment) / byteChunks)
-
-                    # divide comment into chunks
-                    chunks = [
-                        comment[i * chunkLength : i * chunkLength + chunkLength]
-                        for i in range(0, byteChunks)
-                    ]
-
-                    # save chunks
-                    splitComments.extend(chunks)
-
-                else:
-                    # append comment as-is
-                    splitComments.append(comment)
-
-            # re-assign comments after chunking
-            comments = splitComments
-
-            if len(comments) == 0:
-                issuePositiveComments.append(0)
-                issueNegativeComments.append(0)
-                continue
-
-            allComments.extend(comments)
-
-            thread = threading.Thread(
-                target=analyzeSentiments,
-                args=(
-                    senti,
-                    comments,
-                    issuePositiveComments,
-                    issueNegativeComments,
-                    generallyNegative,
-                    semaphore,
-                ),
-            )
-            threads.append(thread)
-
-        for thread in threads:
-            thread.start()
-
-        for thread in threads:
-            thread.join()
-
-        print("")
-
-        # get comment length stats
-        commentLengths = [len(c) for c in allComments]
-
-        generallyNegativeRatio = len(generallyNegative) / issueCount
-
-        print("    All sentiments")
-
-        # analyze comment issue sentiment
-        commentSentiments = []
-        commentSentimentsPositive = 0
-        commentSentimentsNegative = 0
-
-        if len(allComments) > 0:
-            commentSentiments = senti.getSentiment(allComments)
-            commentSentimentsPositive = sum(
-                1 for _ in filter(lambda value: value >= 1, commentSentiments)
-            )
-            commentSentimentsNegative = sum(
-                1 for _ in filter(lambda value: value <= -1, commentSentiments)
-            )
-
-        toxicityPercentage = getToxicityPercentage(config, allComments)
-
-        centrality.buildGraphQlNetwork(batchIdx, participants, "Issues", config)
-
-        print("Writing GraphQL analysis results")
-        with open(
-            os.path.join(config.resultsPath, f"results_{batchIdx}.csv"),
-            "a",
-            newline="",
-        ) as f:
-            w = csv.writer(f, delimiter=",")
-            w.writerow(["NumberIssues", len(batch)])
-            w.writerow(["NumberIssueComments", len(allComments)])
-            w.writerow(["IssueCommentsPositive", commentSentimentsPositive])
-            w.writerow(["IssueCommentsNegative", commentSentimentsNegative])
-            w.writerow(["IssueCommentsNegativeRatio", generallyNegativeRatio])
-            w.writerow(["IssueCommentsToxicityPercentage", toxicityPercentage])
-
-        with open(
-            os.path.join(config.metricsPath, f"issueCommentsCount_{batchIdx}.csv"),
-            "a",
-            newline="",
-        ) as f:
-            w = csv.writer(f, delimiter=",")
-            w.writerow(["Issue Number", "Comment Count"])
-            for issue in batch:
-                w.writerow([issue["number"], len(issue["comments"])])
-
-        with open(
-            os.path.join(config.metricsPath, f"issueParticipantCount_{batchIdx}.csv"),
-            "a",
-            newline="",
-        ) as f:
-            w = csv.writer(f, delimiter=",")
-            w.writerow(["Issue Number", "Developer Count"])
-            for issue in batch:
-                w.writerow([issue["number"], len(set(issue["participants"]))])
-
-        # output statistics
-        stats.outputStatistics(
-            batchIdx,
-            commentLengths,
-            "IssueCommentsLength",
-            config.resultsPath,
-        )
-
-        stats.outputStatistics(
-            batchIdx,
-            [len(issue["comments"]) for issue in batch],
-            "IssueCommentsCount",
-            config.resultsPath,
-        )
-
-        stats.outputStatistics(
-            batchIdx,
-            commentSentiments,
-            "IssueCommentSentiments",
-            config.resultsPath,
-        )
-
-        stats.outputStatistics(
-            batchIdx,
-            [len(set(issue["participants"])) for issue in batch],
-            "IssueParticipantCount",
-            config.resultsPath,
-        )
-
-        stats.outputStatistics(
-            batchIdx,
-            issuePositiveComments,
-            "IssueCountPositiveComments",
-            config.resultsPath,
-        )
-
-        stats.outputStatistics(
-            batchIdx,
-            issueNegativeComments,
-            "IssueCountNegativeComments",
-            config.resultsPath,
-        )
-
-    return batchParticipants
+    return participants
 
 
-def analyzeSentiments(
-    senti, comments, positiveComments, negativeComments, generallyNegative, semaphore
-):
-    with semaphore:
-        commentSentiments = (
-            senti.getSentiment(comments, score="scale")
-            if len(comments) > 1
-            else senti.getSentiment(comments[0])
-        )
+def issueRequest(pat: str, owner: str, name: str):
 
-        commentSentimentsPositive = sum(
-            1 for _ in filter(lambda value: value >= 1, commentSentiments)
-        )
-        commentSentimentsNegative = sum(
-            1 for _ in filter(lambda value: value <= -1, commentSentiments)
-        )
-
-        lock = threading.Lock()
-        with lock:
-            positiveComments.append(commentSentimentsPositive)
-            negativeComments.append(commentSentimentsNegative)
-
-            if commentSentimentsNegative / len(comments) > 0.5:
-                generallyNegative.append(True)
-
-            print(f".", end="")
-
-
-def issueRequest(
-    pat: str, owner: str, name: str, delta: relativedelta, batchDates: List[datetime]
-):
-
-    # prepare batches
-    batches = []
-    batch = None
-    batchStartDate = None
-    batchEndDate = None
+    issueCount = 0
+    issues = dict()
+    participants = set()
 
     cursor = None
     while True:
@@ -261,39 +97,29 @@ def issueRequest(
         # get page of PRs
         query = buildIssueRequestQuery(owner, name, cursor)
         result = gql.runGraphqlRequest(pat, query)
-        print("...")
 
         # extract nodes
         nodes = result["repository"]["issues"]["nodes"]
 
+        if issueCount == 0:
+            issueCount = result["repository"]["issues"]["totalCount"]
+
         # analyse
         for node in nodes:
-
-            createdAt = isoparse(node["createdAt"])
-
-            if batchEndDate == None or (
-                createdAt > batchEndDate and len(batches) < len(batchDates) - 1
-            ):
-                if batch != None:
-                    batches.append(batch)
-
-                batchStartDate = batchDates[len(batches)]
-                batchEndDate = batchStartDate + delta
-
-                batch = []
-
-            issue = {
-                "number": node["number"],
-                "createdAt": createdAt,
-                "comments": list(c["bodyText"] for c in node["comments"]["nodes"]),
-                "participants": list(),
-            }
+            commentCount = node["comments"]["totalCount"]
+            comments = [comment["bodyText"] for comment in node["comments"]["nodes"]]
 
             # participants
+            participantCount = 0
             for user in node["participants"]["nodes"]:
-                gql.addLogin(user, issue["participants"])
+                if gql.tryAddLogin(user, participants):
+                    participantCount += 1
 
-            batch.append(issue)
+            issues[node["number"]] = dict(
+                commentCount=commentCount,
+                comments=comments,
+                participantCount=participantCount,
+            )
 
         # check for next page
         pageInfo = result["repository"]["issues"]["pageInfo"]
@@ -302,29 +128,27 @@ def issueRequest(
 
         cursor = pageInfo["endCursor"]
 
-    if batch != None:
-        batches.append(batch)
-
-    return batches
+    return (issueCount, issues, participants)
 
 
 def buildIssueRequestQuery(owner: str, name: str, cursor: str):
     return """{{
         repository(owner: "{0}", name: "{1}") {{
             issues(first: 100{2}) {{
+                totalCount
                 pageInfo {{
                     hasNextPage
                     endCursor
                 }}
                 nodes {{
                     number
-                    createdAt
                     participants(first: 100) {{
                         nodes {{
                             login
                         }}
                     }}
                     comments(first: 100) {{
+                        totalCount
                         nodes {{
                             bodyText
                         }}
