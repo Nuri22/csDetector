@@ -41,6 +41,7 @@ def main(argv):
         required = {
             "wheel",
             "networkx",
+            "pandas",
             "matplotlib",
             "gitpython",
             "requests",
@@ -49,6 +50,7 @@ def main(argv):
             "strsimpy",
             "python-dateutil",
             "sentistrength",
+            "joblib",
         }
         installed = {pkg for pkg in pkg_resources.working_set.by_key}
         missing = required - installed
@@ -82,8 +84,7 @@ def main(argv):
         senti.setSentiStrengthLanguageFolderPath(sentiDataPath)
 
         # prepare batch delta
-        # TODO: read from the params, for now hardcoded to 999 to always perform a full analysis
-        delta = relativedelta(months=+999)
+        delta = relativedelta(months=+config.batchMonths)
 
         # handle aliases
         commits = list(replaceAliases(repo.iter_commits(), config))

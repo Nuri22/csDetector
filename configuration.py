@@ -6,6 +6,7 @@ class Configuration:
     def __init__(
         self,
         repositoryUrl: str,
+        batchMonths: int,
         outputPath: str,
         sentiStrengthPath: int,
         maxDistance: int,
@@ -13,6 +14,7 @@ class Configuration:
         googleKey: str,
     ):
         self.repositoryUrl = repositoryUrl
+        self.batchMonths = batchMonths
         self.outputPath = outputPath
         self.sentiStrengthPath = sentiStrengthPath
         self.maxDistance = maxDistance
@@ -74,7 +76,7 @@ def parseAliasArgs(args: Sequence[str]):
 
     args = parser.parse_args()
     config = Configuration(
-        args.repositoryUrl, args.outputPath, "", args.maxDistance, args.pat, ""
+        args.repositoryUrl, 0, args.outputPath, "", args.maxDistance, args.pat, ""
     )
 
     return config
@@ -109,6 +111,14 @@ def parseDevNetworkArgs(args: Sequence[str]):
     )
 
     parser.add_argument(
+        "-m",
+        "--batchMonths",
+        help="Number of months to analyze per batch. Default=9999",
+        type=float,
+        default=9999,
+    )
+
+    parser.add_argument(
         "-s",
         "--sentiStrengthPath",
         help="local directory path to the SentiStregth tool",
@@ -118,13 +128,14 @@ def parseDevNetworkArgs(args: Sequence[str]):
     parser.add_argument(
         "-o",
         "--outputPath",
-        help="local directory path for analysis output",
+        help="Local directory path for analysis output",
         required=True,
     )
 
     args = parser.parse_args()
     config = Configuration(
         args.repositoryUrl,
+        args.batchMonths,
         args.outputPath,
         args.sentiStrengthPath,
         0,
