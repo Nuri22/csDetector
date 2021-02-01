@@ -57,15 +57,19 @@ def commitAnalysis(
 
     # run analysis per batch
     authorInfoDict = {}
+    daysActive = list()
     for idx, batch in enumerate(batches):
 
         # get batch authors
-        batchAuthorInfoDict = commitBatchAnalysis(idx, senti, batch, config)
+        batchAuthorInfoDict, batchDaysActive = commitBatchAnalysis(
+            idx, senti, batch, config
+        )
 
-        # combine with main set
+        # combine with main lists
         authorInfoDict.update(batchAuthorInfoDict)
+        daysActive.append(batchDaysActive)
 
-    return batchDates, authorInfoDict
+    return batchDates, authorInfoDict, daysActive
 
 
 def commitBatchAnalysis(
@@ -269,4 +273,4 @@ def commitBatchAnalysis(
         config.resultsPath,
     )
 
-    return authorInfoDict
+    return authorInfoDict, daysActive

@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from typing import List
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from networkx.algorithms import core
 from networkx.algorithms.community import greedy_modularity_communities
 from progress.bar import Bar
 from collections import Counter
@@ -22,6 +23,7 @@ def centralityAnalysis(
     batchDates: List[datetime],
     config: Configuration,
 ):
+    coreDevs = list()
 
     # work with batched commits
     for idx, batchStartDate in enumerate(batchDates):
@@ -34,7 +36,10 @@ def centralityAnalysis(
             and commit.committed_datetime < batchEndDate
         ]
 
-        processBatch(idx, batch, config)
+        batchCoreDevs = processBatch(idx, batch, config)
+        coreDevs.append(batchCoreDevs)
+
+    return coreDevs
 
 
 def processBatch(batchIdx: int, commits: List[git.Commit], config: Configuration):
@@ -66,7 +71,9 @@ def processBatch(batchIdx: int, commits: List[git.Commit], config: Configuration
         authorRelatedAuthors = allRelatedAuthors.setdefault(author, set())
         authorRelatedAuthors.update(commitRelatedAuthors)
 
-    prepareGraph(allRelatedAuthors, authorCommits, batchIdx, "commitCentrality", config)
+    return prepareGraph(
+        allRelatedAuthors, authorCommits, batchIdx, "commitCentrality", config
+    )
 
 
 def buildGraphQlNetwork(batchIdx: int, batch: list, prefix: str, config: Configuration):
@@ -131,9 +138,11 @@ def prepareGraph(
         pass
 
     # finding high centrality authors
-    numberHighCentralityAuthors = len(
+    highCentralityAuthors = list(
         [author for author, centrality in centrality.items() if centrality > 0.5]
     )
+
+    numberHighCentralityAuthors = len(highCentralityAuthors)
 
     percentageHighCentralityAuthors = numberHighCentralityAuthors / len(
         allRelatedAuthors
@@ -250,6 +259,12 @@ def prepareGraph(
     graphFigure.savefig(
         os.path.join(config.resultsPath, f"{outputPrefix}_{batchIdx}.pdf")
     )
+
+    nx.write_graphml(
+        G, os.path.join(config.resultsPath, f"{outputPrefix}_{batchIdx}.xml")
+    )
+
+    return highCentralityAuthors
 
 
 # helper functions

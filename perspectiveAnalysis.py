@@ -10,6 +10,9 @@ from configuration import Configuration
 
 def getToxicityPercentage(config: Configuration, comments: List):
 
+    # comment out to pause toxicity analysis
+    # return 0
+
     # estimate completion
     qpsLimit = 1
     buffer = 5
@@ -73,7 +76,7 @@ def getToxicityPercentage(config: Configuration, comments: List):
     print()
 
     # calculate percentage of toxic comments
-    percentage = toxicResults / len(comments)
+    percentage = 0 if len(comments) == 0 else toxicResults / len(comments)
 
     return percentage
 

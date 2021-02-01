@@ -14,6 +14,7 @@ def tagAnalysis(
     repo: git.Repo,
     delta: relativedelta,
     batchDates: List[datetime.datetime],
+    daysActive: List[int],
     config: Configuration,
 ):
     print("Analyzing tags")
@@ -56,10 +57,13 @@ def tagAnalysis(
             if tag["rawDate"] >= batchStartDate and tag["rawDate"] < batchEndDate
         ]
 
-        outputTags(idx, batchTags, config)
+        outputTags(idx, batchTags, daysActive[idx], config)
 
 
-def outputTags(idx: int, tagInfo: List[dict], config: Configuration):
+def outputTags(idx: int, tagInfo: List[dict], daysActive: int, config: Configuration):
+
+    # calculate FN
+    fn = len(tagInfo) / daysActive * 100
 
     # output non-tabular results
     with open(
@@ -70,6 +74,13 @@ def outputTags(idx: int, tagInfo: List[dict], config: Configuration):
 
     # output tag info
     print("Outputting CSVs")
+
+    with open(
+        os.path.join(config.resultsPath, f"results_{idx}.csv"), "a", newline=""
+    ) as f:
+        w = csv.writer(f, delimiter=",")
+        w.writerow(["FN", fn])
+
     with open(
         os.path.join(config.metricsPath, f"tags_{idx}.csv"), "a", newline=""
     ) as f:
