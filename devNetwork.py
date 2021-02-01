@@ -14,6 +14,7 @@ from graphqlAnalysis.releaseAnalysis import releaseAnalysis
 from graphqlAnalysis.prAnalysis import prAnalysis
 from graphqlAnalysis.issueAnalysis import issueAnalysis
 from smellDetection import smellDetection
+from politenessAnalysis import politenessAnalysis
 from dateutil.relativedelta import relativedelta
 
 FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
@@ -90,27 +91,33 @@ def main(argv):
         commits = list(replaceAliases(repo.iter_commits(), config))
 
         # run analysis
-        batchDates, authorInfoDict = commitAnalysis(senti, commits, delta, config)
+        batchDates, authorInfoDict, daysActive = commitAnalysis(
+            senti, commits, delta, config
+        )
 
-        tagAnalysis(repo, delta, batchDates, config)
+        tagAnalysis(repo, delta, batchDates, daysActive, config)
 
-        centrality.centralityAnalysis(commits, delta, batchDates, config)
+        coreDevs = centrality.centralityAnalysis(commits, delta, batchDates, config)
 
         releaseAnalysis(commits, config, delta, batchDates)
 
-        prParticipantBatches = prAnalysis(
+        prParticipantBatches, prCommentBatches = prAnalysis(
             config,
             senti,
             delta,
             batchDates,
         )
 
-        issueParticipantBatches = issueAnalysis(
+        politenessAnalysis(config, "PR", prCommentBatches)
+
+        issueParticipantBatches, issueCommentBatches = issueAnalysis(
             config,
             senti,
             delta,
             batchDates,
         )
+
+        politenessAnalysis(config, "Issue", issueCommentBatches)
 
         for batchIdx, batchDate in enumerate(batchDates):
 
@@ -140,11 +147,15 @@ def main(argv):
                 uniqueAuthorsInIssueBatch
             )
 
+            # get batch core team
+            batchCoreDevs = coreDevs[batchIdx]
+
             # run dev analysis
             devAnalysis(
                 authorInfoDict,
                 batchIdx,
                 uniqueAuthorsInBatch,
+                batchCoreDevs,
                 config,
             )
 

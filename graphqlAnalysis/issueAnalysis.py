@@ -12,7 +12,7 @@ from functools import reduce
 from dateutil.relativedelta import relativedelta
 from dateutil.parser import isoparse
 from typing import List
-from datetime import datetime
+from datetime import date, datetime, timezone
 from configuration import Configuration
 import threading
 from collections import Counter
@@ -32,6 +32,7 @@ def issueAnalysis(
     )
 
     batchParticipants = list()
+    batchComments = list()
 
     for batchIdx, batch in enumerate(batches):
         print(f"Analyzing issue batch #{batchIdx}")
@@ -112,10 +113,16 @@ def issueAnalysis(
 
         print("")
 
+        # save comments
+        batchComments.append(allComments)
+
         # get comment length stats
         commentLengths = [len(c) for c in allComments]
 
         generallyNegativeRatio = len(generallyNegative) / issueCount
+
+        # get pr duration stats
+        durations = [(pr["closedAt"] - pr["createdAt"]).days for pr in batch]
 
         print("    All sentiments")
 
@@ -181,6 +188,13 @@ def issueAnalysis(
 
         stats.outputStatistics(
             batchIdx,
+            durations,
+            "IssueDuration",
+            config.resultsPath,
+        )
+
+        stats.outputStatistics(
+            batchIdx,
             [len(issue["comments"]) for issue in batch],
             "IssueCommentsCount",
             config.resultsPath,
@@ -214,7 +228,7 @@ def issueAnalysis(
             config.resultsPath,
         )
 
-    return batchParticipants
+    return batchParticipants, batchComments
 
 
 def analyzeSentiments(
@@ -270,6 +284,11 @@ def issueRequest(
         for node in nodes:
 
             createdAt = isoparse(node["createdAt"])
+            closedAt = (
+                datetime.now(timezone.utc)
+                if node["closedAt"] is None
+                else isoparse(node["closedAt"])
+            )
 
             if batchEndDate == None or (
                 createdAt > batchEndDate and len(batches) < len(batchDates) - 1
@@ -285,6 +304,7 @@ def issueRequest(
             issue = {
                 "number": node["number"],
                 "createdAt": createdAt,
+                "closedAt": closedAt,
                 "comments": list(c["bodyText"] for c in node["comments"]["nodes"]),
                 "participants": list(),
             }
@@ -318,7 +338,8 @@ def buildIssueRequestQuery(owner: str, name: str, cursor: str):
                 }}
                 nodes {{
                     number
-                    createdAt
+                    createdAt    
+                    closedAt
                     participants(first: 100) {{
                         nodes {{
                             login

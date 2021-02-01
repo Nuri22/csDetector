@@ -22,6 +22,14 @@ Run **installModules.ps1** in PowerShell for a quick and simple setup. This will
 ## Manual
 Inspect **installModules.ps1** and **requiredModules.txt** files for a manual installation in an environment that does not have PowerShell.
 
+## ConvoKit
+The tool requires ConvoKit to be installed correctly. See the [references](#references) section for setup instructions.
+
+#### The Sentistrength tool
+The files of sentistrength tool are available here: 
+http://sentistrength.wlv.ac.uk/jkpop/ 
+
+
 # Running
 If you followed the recommended installation approach, the virtual environment **must be activated** prior to running the tool! Run the proper to your environment activation script inside the **.venv/Scripts** folder.
 
@@ -34,11 +42,18 @@ For documentation on changing this value see:
 https://github.com/luozhouyang/python-string-similarity#metric-longest-common-subsequence  
 *Ex: 0.75*
 
-#### The Sentistrength tool
-The files of sentistrength tool are available here: 
-http://sentistrength.wlv.ac.uk/jkpop/ 
-
 # Aliases
 It is recommended to generate and massage author aliases prior to analyzing repositories to minimize the number of duplicate users who have historically used multiple emails for their commits skewing the developer network analysis.
 
 To generate author aliases, run **authorAliasExtractor.py** with the right parameters. Pass **--help** for parameter documentation.
+
+# References
+- GitHub GraphQL API Explorer  
+https://docs.github.com/en/graphql/overview/explorer
+
+- ConvoKit
+  - Setup  
+  https://convokit.cornell.edu/documentation/tutorial.html
+
+  - Politeness features and Markers in Convokit  
+  https://github.com/CornellNLP/Cornell-Conversational-Analysis-Toolkit/blob/master/examples/politeness-strategies/Politeness%20Marker%20and%20Summarize%20Demo.ipynb

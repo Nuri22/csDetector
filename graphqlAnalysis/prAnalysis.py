@@ -10,7 +10,7 @@ import centralityAnalysis as centrality
 from dateutil.relativedelta import relativedelta
 from dateutil.parser import isoparse
 from typing import List
-from datetime import datetime
+from datetime import date, datetime, timezone
 from configuration import Configuration
 import itertools
 import threading
@@ -30,6 +30,7 @@ def prAnalysis(
     )
 
     batchParticipants = list()
+    batchComments = list()
 
     for batchIdx, batch in enumerate(batches):
         print(f"Analyzing PR batch #{batchIdx}")
@@ -111,10 +112,16 @@ def prAnalysis(
 
         print("")
 
+        # save comments
+        batchComments.append(allComments)
+
         # get comment length stats
         commentLengths = [len(c) for c in allComments]
 
         generallyNegativeRatio = len(generallyNegative) / prCount
+
+        # get pr duration stats
+        durations = [(pr["closedAt"] - pr["createdAt"]).days for pr in batch]
 
         print("    All sentiments")
 
@@ -177,7 +184,13 @@ def prAnalysis(
             config.resultsPath,
         )
 
-        # output statistics
+        stats.outputStatistics(
+            batchIdx,
+            durations,
+            "PRDuration",
+            config.resultsPath,
+        )
+
         stats.outputStatistics(
             batchIdx,
             [len(pr["comments"]) for pr in batch],
@@ -220,7 +233,7 @@ def prAnalysis(
             config.resultsPath,
         )
 
-    return batchParticipants
+    return batchParticipants, batchComments
 
 
 def analyzeSentiments(
@@ -275,6 +288,11 @@ def prRequest(
         for node in nodes:
 
             createdAt = isoparse(node["createdAt"])
+            closedAt = (
+                datetime.now(timezone.utc)
+                if node["closedAt"] is None
+                else isoparse(node["closedAt"])
+            )
 
             if batchEndDate == None or (
                 createdAt > batchEndDate and len(batches) < len(batchDates) - 1
@@ -291,6 +309,7 @@ def prRequest(
             pr = {
                 "number": node["number"],
                 "createdAt": createdAt,
+                "closedAt": closedAt,
                 "comments": list(c["bodyText"] for c in node["comments"]["nodes"]),
                 "commitCount": node["commits"]["totalCount"],
                 "participants": list(),
@@ -327,6 +346,7 @@ def buildPrRequestQuery(owner: str, name: str, cursor: str):
                 nodes {{
                     number
                     createdAt
+                    closedAt
                     participants(first: 100) {{
                         nodes {{
                             login
