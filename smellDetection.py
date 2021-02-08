@@ -1,28 +1,8 @@
 import csv
 import os
 
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.naive_bayes import GaussianNB
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC, libsvm
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, recall_score, auc, f1_score, r2_score, mean_squared_error
-from sklearn.metrics import precision_score, precision_recall_curve, cohen_kappa_score, roc_curve
-from sklearn.model_selection import GridSearchCV
-from imblearn.over_sampling import SMOTE
-import warnings
-import os
-import pickle
-from joblib import dump, load
-
+from joblib import load
 from configuration import Configuration
-
-
-warnings.filterwarnings("ignore")
-
 
 
 def smellDetection(config: Configuration, batchIdx: int):
@@ -43,7 +23,7 @@ def smellDetection(config: Configuration, batchIdx: int):
     metrics = buildMetricsList(results)
 
     # load all models
-    smells = ["OSE", "BCE", "PDE", "SV", "OS", "SD", "RS", "TF", "UI", "UO", "VS"]
+    smells = ["OSE", "BCE", "PDE", "SV", "OS", "SD", "RS", "TF", "UI", "UO", "IS"]
     all_models = {}
     for smell in smells:
         modelPath = os.path.abspath("./models/{}.joblib".format(smell))
@@ -65,69 +45,56 @@ def buildMetricsList(results: dict):
 
     # declare names to extract from the results file in the right order
     names = [
-        "CommitCount",
-        "DaysActive",
         "AuthorCount",
-        "SponsoredAuthorCount",
-        "PercentageSponsoredAuthors",
-        "TimezoneCount",
-        "AuthorActiveDays_mean",
-        "AuthorActiveDays_stdev",
+        "DaysActive",
+        "CommitCount",
         "AuthorCommitCount_stdev",
-        "TimezoneAuthorCount_stdev",
-        "TimezoneCommitCount_stdev",
-        "CommitMessageSentiment_mean",
-        "CommitMessageSentiment_stdev",
-        "CommitMessageSentimentsPositive_count",
-        "CommitMessageSentimentsPositive_mean",
-        "CommitMessageSentimentsPositive_stdev",
-        "CommitMessageSentimentsNegative_count",
-        "CommitMessageSentimentsNegative_mean",
-        "Tag Count",
-        "TagCommitCount_stdev",
-        "commitCentrality_Density",
-        "commitCentrality_Community Count",
         "commitCentrality_NumberHighCentralityAuthors",
         "commitCentrality_PercentageHighCentralityAuthors",
-        "commitCentrality_Closeness_stdev",
-        "commitCentrality_Betweenness_stdev",
-        "commitCentrality_Centrality_stdev",
-        "commitCentrality_CommunityAuthorCount_stdev",
-        "commitCentrality_CommunityAuthorItemCount_stdev",
-        "NumberReleases",
-        "ReleaseAuthorCount_stdev",
-        "ReleaseCommitCount_stdev",
+        "SponsoredAuthorCount",
+        "PercentageSponsoredAuthors",
         "NumberPRs",
-        "NumberPRComments",
-        "PRCommentsCount_mean",
-        "PRCommitsCount_stdev",
-        "PRCommentSentiments_stdev",
-        "PRParticipantsCount_mean",
         "PRParticipantsCount_stdev",
-        "PRCountPositiveComments_count",
-        "PRCountPositiveComments_mean",
-        "PRCountNegativeComments_count",
-        "PRCountNegativeComments_mean",
+        "PRParticipantsCount_mean",
         "NumberIssues",
-        "NumberIssueComments",
-        "IssueCommentsPositive",
-        "IssueCommentsCount_mean",
-        "IssueCommentsCount_stdev",
-        "IssueCommentSentiments_stdev",
-        "IssueParticipantCount_mean",
         "IssueParticipantCount_stdev",
         "IssueCountPositiveComments_mean",
-        "IssueCountNegativeComments_count",
+        "commitCentrality_Centrality_count",
+        "commitCentrality_Centrality_stdev",
+        "commitCentrality_Betweenness_count",
+        "commitCentrality_Closeness_count",
+        "commitCentrality_Density",
+        "commitCentrality_CommunityAuthorCount_count",
+        "commitCentrality_CommunityAuthorItemCount_mean",
+        "commitCentrality_CommunityAuthorItemCount_stdev",
+        "commitCentrality_CommunityAuthorCount_mean",
+        "commitCentrality_CommunityAuthorCount_stdev",
+        "TimezoneCount",
+        "TimezoneCommitCount_mean",
+        "TimezoneCommitCount_stdev",
+        "TimezoneAuthorCount_mean",
+        "TimezoneAuthorCount_stdev",
+        "NumberReleases",
+        "ReleaseCommitCount_mean",
+        "ReleaseCommitCount_stdev",
+        "FN",
+        "PRDuration_mean",
+        "IssueDuration_mean",
+        "BusFactorNumber",
+        "commitCentrality_TFN",
+        "commitCentrality_TFC",
+        "PRCommentsCount_mean",
+        "PRCommitsCount_mean",
+        "NumberIssueComments",
+        "IssueCommentsCount_mean",
+        "IssueCommentsCount_stdev",
+        "PRCommentsToxicityPercentage",
+        "IssueCommentsToxicityPercentage",
+        "RPCPR",
+        "RPCIssue",
         "IssueCountNegativeComments_mean",
-        "issuesAndPRsCentrality_Density",
-        "issuesAndPRsCentrality_Community Count",
-        "issuesAndPRsCentrality_NumberHighCentralityAuthors",
-        "issuesAndPRsCentrality_PercentageHighCentralityAuthors",
-        "issuesAndPRsCentrality_Closeness_stdev",
-        "issuesAndPRsCentrality_Betweenness_stdev",
-        "issuesAndPRsCentrality_Centrality_stdev",
-        "issuesAndPRsCentrality_CommunityAuthorCount_stdev",
-        "issuesAndPRsCentrality_CommunityAuthorItemCount_stdev",
+        "PRCountNegativeComments_mean",
+        "ACCL"
     ]
 
     # build key/value list
@@ -137,6 +104,8 @@ def buildMetricsList(results: dict):
         # default value if key isn't present or the value is blank
         result = results.get(name, 0)
         if not result:
+
+            print(f"No value for '{name}' during smell detection, defaulting to 0")
             result = 0
 
         metrics.append(result)

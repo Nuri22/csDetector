@@ -2,15 +2,48 @@ import os
 import csv
 import convokit
 
+import statsAnalysis as stats
 from configuration import Configuration
 
 
 def politenessAnalysis(
     config: Configuration,
-    outputPrefix: str,
-    commentBatches: list,
+    prCommentBatches: list,
+    issueCommentBatches: list,
 ):
+    calculateACCL(config, prCommentBatches, issueCommentBatches)
 
+    ###
+    # Functionality commented out due to ConvoKit 2.4.3 no longer being compatible with spaCy.
+    # The required by ConvoKit shorthand 'en' for the English dictionary is obsolete and is no
+    # longer available.
+    ###
+
+    # calculateRPC(config, "PR", prCommentBatches)
+    # calculateRPC(config, "Issue", prCommentBatches)
+
+
+def calculateACCL(config, prCommentBatches, issueCommentBatches):
+    for batchIdx, batch in enumerate(prCommentBatches):
+
+        prCommentLengths = list([len(c) for c in batch])
+        issueCommentBatch = list([len(c) for c in issueCommentBatches[batchIdx]])
+
+        prCommentLengthsMean = stats.calculateStats(prCommentLengths)["mean"]
+        issueCommentLengthsMean = stats.calculateStats(issueCommentBatch)["mean"]
+
+        accl = prCommentLengthsMean + issueCommentLengthsMean / 2
+
+        # output results
+        with open(os.path.join(config.resultsPath, f"results_{batchIdx}.csv"),
+                  "a",
+                  newline=""
+                  ) as f:
+            w = csv.writer(f, delimiter=",")
+            w.writerow([f"ACCL", accl])
+
+
+def calculateRPC(config, outputPrefix, commentBatches):
     for batchIdx, batch in enumerate(commentBatches):
 
         # analyze batch

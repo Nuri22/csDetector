@@ -22,26 +22,10 @@ def outputStatistics(idx: int, data: list, metric: str, outputDir: str):
 
 def calculateStats(data):
 
-    # get non-zero data following the (+1 data / -1 result) approach
-    nonZeroData = [value + 1 for value in data]
-
     stats = dict(
         count=len(data),
-        #min=min(data),
-       # max=max(data),
         mean=mean(data),
-        # not used because we lack rules on how to deal with negatives
-        # geometric_mean=geometric_mean(nonZeroData) - 1,
-        # harmonic_mean=harmonic_mean(data),
-        #median=median(data),
-        #median_low=median_low(data),
-        #median_high=median_high(data),
-        #median_grouped=median_grouped(data),
-        #mode=mode(data),
-        #pstdev=pstdev(data),
-       # pvariance=pvariance(data),
-        stdev=stdev(data) if len(data) > 1 else None,
-        #variance=variance(data) if len(data) > 1 else None,
+        stdev=stdev(data) if len(data) > 1 else None
     )
 
     return stats
