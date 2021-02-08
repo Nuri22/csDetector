@@ -36,7 +36,7 @@ To run the tool you need run **devNetwork.py** with the right parameters. Pass t
 - (-g) for "Google Cloud API Key used for authentication with the Perspective API" 
 - (-r) for "GitHub repository URL that you want to analyse" 
 - (-s) for  "local directory path to the SentiStregth tool"  
-- (-o) "Local directory path for analysis output"
+- (-o) for "Local directory path for analysis output"
 ## Configuration File
 
 #### aliasSimilarityMaxDistance (float)
