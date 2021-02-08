@@ -5,6 +5,7 @@ import networkx as nx
 import csv
 import matplotlib.pyplot as plt
 
+from git.objects import Commit
 from typing import List
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -18,7 +19,7 @@ from configuration import Configuration
 
 
 def centralityAnalysis(
-    commits: List[git.Commit],
+    commits: List[Commit],
     delta: relativedelta,
     batchDates: List[datetime],
     config: Configuration,
@@ -42,7 +43,7 @@ def centralityAnalysis(
     return coreDevs
 
 
-def processBatch(batchIdx: int, commits: List[git.Commit], config: Configuration):
+def processBatch(batchIdx: int, commits: List[Commit], config: Configuration):
     allRelatedAuthors = {}
     authorCommits = Counter({})
 
@@ -104,7 +105,7 @@ def buildGraphQlNetwork(batchIdx: int, batch: list, prefix: str, config: Configu
 
 def prepareGraph(
     allRelatedAuthors: dict,
-    authorItemCounts: Counter,
+    authorItems: Counter,
     batchIdx: int,
     outputPrefix: str,
     config: Configuration,
@@ -130,7 +131,7 @@ def prepareGraph(
     try:
         for idx, community in enumerate(greedy_modularity_communities(G)):
             authorCount = len(community)
-            communityCommitCount = sum(authorItemCounts[author] for author in community)
+            communityCommitCount = sum(authorItems[author] for author in community)
             row = [authorCount, communityCommitCount]
             modularity.append(row)
     except ZeroDivisionError:
@@ -148,6 +149,12 @@ def prepareGraph(
         allRelatedAuthors
     )
 
+    # calculate TFN
+    tfn = len(authorItems) - numberHighCentralityAuthors
+
+    # calculate TFC
+    tfc = sum(authorItems[author] for author in highCentralityAuthors) / sum(authorItems.values()) * 100
+
     print("Outputting CSVs")
 
     # output non-tabular results
@@ -157,6 +164,8 @@ def prepareGraph(
         w = csv.writer(f, delimiter=",")
         w.writerow([f"{outputPrefix}_Density", density])
         w.writerow([f"{outputPrefix}_Community Count", len(modularity)])
+        w.writerow([f"{outputPrefix}_TFN", tfn])
+        w.writerow([f"{outputPrefix}_TFC", tfc])
 
     # output community information
     with open(
@@ -246,7 +255,8 @@ def prepareGraph(
 
     # output graph
     print("Outputting graph")
-    graphFigure = plt.figure(5, figsize=(30, 30))
+    plt.figure(5, figsize=(30, 30))
+
     nx.draw(
         G,
         with_labels=True,
@@ -256,7 +266,8 @@ def prepareGraph(
         linewidths=2,
         font_size=20,
     )
-    graphFigure.savefig(
+
+    plt.savefig(
         os.path.join(config.resultsPath, f"{outputPrefix}_{batchIdx}.pdf")
     )
 

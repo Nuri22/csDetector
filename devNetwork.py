@@ -1,4 +1,8 @@
-import sys, os, subprocess, shutil, stat
+import sys
+import os
+import subprocess
+import shutil
+import stat
 import git
 import pkg_resources
 import sentistrength
@@ -78,10 +82,10 @@ def main(argv):
         # setup sentiment analysis
         senti = sentistrength.PySentiStr()
 
-        sentiJarPath = os.path.join(config.sentiStrengthPath, "SentiStrength.jar")
+        sentiJarPath = os.path.join(config.sentiStrengthPath, "SentiStrength.jar").replace("\\", "/")
         senti.setSentiStrengthPath(sentiJarPath)
 
-        sentiDataPath = os.path.join(config.sentiStrengthPath, "SentiStrength_Data")
+        sentiDataPath = os.path.join(config.sentiStrengthPath, "SentiStrength_Data").replace("\\", "/") + "/"
         senti.setSentiStrengthLanguageFolderPath(sentiDataPath)
 
         # prepare batch delta
@@ -108,8 +112,6 @@ def main(argv):
             batchDates,
         )
 
-        politenessAnalysis(config, "PR", prCommentBatches)
-
         issueParticipantBatches, issueCommentBatches = issueAnalysis(
             config,
             senti,
@@ -117,7 +119,7 @@ def main(argv):
             batchDates,
         )
 
-        politenessAnalysis(config, "Issue", issueCommentBatches)
+        politenessAnalysis(config, prCommentBatches, issueCommentBatches)
 
         for batchIdx, batchDate in enumerate(batchDates):
 

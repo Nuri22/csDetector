@@ -1,4 +1,5 @@
-import os, argparse
+import os
+import argparse
 from typing import Sequence
 
 
@@ -8,7 +9,7 @@ class Configuration:
         repositoryUrl: str,
         batchMonths: int,
         outputPath: str,
-        sentiStrengthPath: int,
+        sentiStrengthPath: str,
         maxDistance: int,
         pat: str,
         googleKey: str,

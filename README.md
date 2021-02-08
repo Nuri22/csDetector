@@ -20,14 +20,12 @@ All required modules **must be installed** prior to running the tool.
 Run **installModules.ps1** in PowerShell for a quick and simple setup. This will create an embedded **venv** environment and install all the necessary modules with correct versions without polluting the global namespace.
 
 ## Manual
+
+### Packages
 Inspect **installModules.ps1** and **requiredModules.txt** files for a manual installation in an environment that does not have PowerShell.
 
 ## ConvoKit
 The tool requires ConvoKit to be installed correctly. See the [references](#references) section for setup instructions.
-
-#### The Sentistrength tool
-The files of sentistrength tool are available here: 
-http://sentistrength.wlv.ac.uk/jkpop/ 
 
 
 # Running
@@ -50,6 +48,9 @@ To generate author aliases, run **authorAliasExtractor.py** with the right param
 # References
 - GitHub GraphQL API Explorer  
 https://docs.github.com/en/graphql/overview/explorer
+
+-  The files of sentistrength tool are available here: 
+    http://sentistrength.wlv.ac.uk/jkpop/ 
 
 - ConvoKit
   - Setup  
