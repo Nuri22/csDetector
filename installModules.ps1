@@ -6,3 +6,6 @@ py -m venv .venv
 
 # install modules
 pip install -r requirements.txt
+
+# install convokit dependencies
+py -m spacy download en_core_web_sm
