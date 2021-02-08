@@ -31,8 +31,12 @@ The tool requires ConvoKit to be installed correctly. See the [references](#refe
 # Running
 If you followed the recommended installation approach, the virtual environment **must be activated** prior to running the tool! Run the proper to your environment activation script inside the **.venv/Scripts** folder.
 
-To run the tool you need run **devNetwork.py** with the right parameters. Pass the **--help** parameter to view the documentation.
-
+To run the tool you need run **devNetwork.py** with the right parameters. Pass the **--help** parameter to view the documentation. For example:
+-p "GitHub PAT (personal access token) used for querying the GitHub API" 
+-g "Google Cloud API Key used for authentication with the Perspective API" 
+-r "GitHub repository URL that you want to analyse" 
+-s "local directory path to the SentiStregth tool"  
+-o "Local directory path for analysis output"
 ## Configuration File
 
 #### aliasSimilarityMaxDistance (float)
