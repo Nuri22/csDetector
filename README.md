@@ -34,8 +34,8 @@ If you followed the recommended installation approach, the virtual environment *
 To run the tool you need run **devNetwork.py** with the right parameters. Pass the **--help** parameter to view the documentation. For example:
 - (-p) for "GitHub PAT (personal access token) used for querying the GitHub API" 
 - (-g) for "Google Cloud API Key used for authentication with the Perspective API" 
-- (-r) for "GitHub repository URL that you want to analyse" See the [references](#references) section.
-- (-s) for  "local directory path to the SentiStregth tool"  
+- (-r) for "GitHub repository URL that you want to analyse" 
+- (-s) for  "local directory path to the SentiStregth tool" See the [references](#references) section. 
 - (-o) for "Local directory path for analysis output"
 ## Configuration File
 
