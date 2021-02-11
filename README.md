@@ -34,7 +34,7 @@ If you followed the recommended installation approach, the virtual environment *
 To run the tool you need run **devNetwork.py** with the right parameters. Pass the **--help** parameter to view the documentation. For example:
 - (-p) for "GitHub PAT (personal access token) used for querying the GitHub API" 
 - (-g) for "Google Cloud API Key used for authentication with the Perspective API" 
-- (-r) for "GitHub repository URL that you want to analyse" 
+- (-r) for "GitHub repository URL that you want to analyse" See the [references](#references) section.
 - (-s) for  "local directory path to the SentiStregth tool"  
 - (-o) for "Local directory path for analysis output"
 ## Configuration File
@@ -55,6 +55,8 @@ https://docs.github.com/en/graphql/overview/explorer
 
 -  The files of sentistrength tool are available here: 
     http://sentistrength.wlv.ac.uk/jkpop/ 
+	 - You need to extrcat the SentiStrength_Data.zip folder.
+	 - You need to install Java in your local device to work with SentiStrength.jar file.
 
 - ConvoKit
   - Setup  
