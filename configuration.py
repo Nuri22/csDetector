@@ -111,13 +111,13 @@ def parseDevNetworkArgs(args: Sequence[str]):
         required=True,
     )
 
-    parser.add_argument(
-        "-m",
-        "--batchMonths",
-        help="Number of months to analyze per batch. Default=9999",
-        type=float,
-        default=9999,
-    )
+    #parser.add_argument(
+       # "-m",
+       # "--batchMonths",
+        #help="Number of months to analyze per batch. Default=9999",
+       # type=float,
+        #default=9999,
+    #)
 
     parser.add_argument(
         "-s",
