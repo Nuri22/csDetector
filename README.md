@@ -12,6 +12,7 @@ The purpose of this tool is twofold:
 - VSCode 1.45.1
 - PowerShell 7.0.1
 - Python 3.8.3
+- Java 8.0.231
 
 # Installation
 All required modules **must be installed** prior to running the tool.

@@ -13,14 +13,10 @@ def politenessAnalysis(
 ):
     calculateACCL(config, prCommentBatches, issueCommentBatches)
 
-    ###
-    # Functionality commented out due to ConvoKit 2.4.3 no longer being compatible with spaCy.
-    # The required by ConvoKit shorthand 'en' for the English dictionary is obsolete and is no
-    # longer available.
-    ###
+    
 
-    # calculateRPC(config, "PR", prCommentBatches)
-    # calculateRPC(config, "Issue", prCommentBatches)
+      calculateRPC(config, "PR", prCommentBatches)
+      calculateRPC(config, "Issue", prCommentBatches)
 
 
 def calculateACCL(config, prCommentBatches, issueCommentBatches):
