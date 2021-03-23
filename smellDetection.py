@@ -4,7 +4,7 @@ import os
 from joblib import load
 from configuration import Configuration
 
-
+warnings.filterwarnings("ignore") 
 def smellDetection(config: Configuration, batchIdx: int):
 
     # prepare results holder for easy mapping

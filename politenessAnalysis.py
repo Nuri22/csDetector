@@ -15,8 +15,8 @@ def politenessAnalysis(
 
     
 
-      calculateRPC(config, "PR", prCommentBatches)
-      calculateRPC(config, "Issue", prCommentBatches)
+    calculateRPC(config, "PR", prCommentBatches)
+    calculateRPC(config, "Issue", prCommentBatches)
 
 
 def calculateACCL(config, prCommentBatches, issueCommentBatches):
