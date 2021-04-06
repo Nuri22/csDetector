@@ -13,6 +13,7 @@ class Configuration:
         maxDistance: int,
         pat: str,
         googleKey: str,
+        startDate: str
     ):
         self.repositoryUrl = repositoryUrl
         self.batchMonths = batchMonths
@@ -21,6 +22,7 @@ class Configuration:
         self.maxDistance = maxDistance
         self.pat = pat
         self.googleKey = googleKey
+        self.startDate = startDate
 
         # parse repo name into owner and project name
         split = self.repositoryUrl.split("/")
@@ -75,6 +77,13 @@ def parseAliasArgs(args: Sequence[str]):
         required=True,
     )
 
+    parser.add_argument(
+        "-sd",
+        "--startDate",
+        help="start date of project life",
+        required=False,
+    )
+
     args = parser.parse_args()
     config = Configuration(
         args.repositoryUrl, 0, args.outputPath, "", args.maxDistance, args.pat, ""
@@ -101,7 +110,7 @@ def parseDevNetworkArgs(args: Sequence[str]):
         "-g",
         "--googleKey",
         help="Google Cloud API Key used for authentication with the Perspective API",
-        required=True,
+        required=False,
     )
 
     parser.add_argument(
@@ -133,6 +142,13 @@ def parseDevNetworkArgs(args: Sequence[str]):
         required=True,
     )
 
+    parser.add_argument(
+        "-sd",
+        "--startDate",
+        help="Start date of project life",
+        required=False,
+    )
+
     args = parser.parse_args()
     config = Configuration(
         args.repositoryUrl,
@@ -142,6 +158,7 @@ def parseDevNetworkArgs(args: Sequence[str]):
         0,
         args.pat,
         args.googleKey,
+        args.startDate
     )
 
     return config

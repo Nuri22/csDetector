@@ -1,0 +1,6 @@
+[spacy_architectures]
+spacy-legacy.MaxoutWindowEncoder.v1 = spacy_legacy.architectures.tok2vec:MaxoutWindowEncoder_v1
+spacy-legacy.MishWindowEncoder.v1 = spacy_legacy.architectures.tok2vec:MishWindowEncoder_v1
+spacy-legacy.TextCatEnsemble.v1 = spacy_legacy.architectures.textcat:TextCatEnsemble_v1
+spacy-legacy.Tok2Vec.v1 = spacy_legacy.architectures.tok2vec:Tok2Vec_v1
+

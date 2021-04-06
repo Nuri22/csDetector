@@ -1,0 +1,13 @@
+clean_text-0.3.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+clean_text-0.3.0.dist-info/LICENSE,sha256=FjV2X-HtP_Cwr0mCG9KipCoLXnM0ydZEli9wJ0t9TPc,976
+clean_text-0.3.0.dist-info/METADATA,sha256=rGNXEWixG5OVH49SZd8oB-CHV-DCg6PhquJlAr94tFo,5791
+clean_text-0.3.0.dist-info/RECORD,,
+clean_text-0.3.0.dist-info/WHEEL,sha256=SrtnPGVTMeYWttls9xnWA01eUhCZ3ufFdJUYb1J3r-U,83
+cleantext/__init__.py,sha256=FOHPl7PjbTi9iOvUUZaTvikQ4mg50poLyM0ain667Ds,44
+cleantext/__pycache__/__init__.cpython-38.pyc,,
+cleantext/__pycache__/clean.cpython-38.pyc,,
+cleantext/__pycache__/constants.cpython-38.pyc,,
+cleantext/__pycache__/specials.cpython-38.pyc,,
+cleantext/clean.py,sha256=oIlQExK8nK7Uk91823b2Z1fZK6tFybWGHGJ-KiCIdXM,9593
+cleantext/constants.py,sha256=DzRqzkdLEA8FXtIOmbKh-4Tp9wFCm24AvtYitmNJteY,3590
+cleantext/specials.py,sha256=tqO7kBNRvOrI-FTQzEC1OvZTK9PFaool3iP2-4Z2UmU,1030
