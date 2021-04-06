@@ -7,6 +7,14 @@ The purpose of this tool is twofold:
 1. Contribute to the list of existing community smells that developers need to be aware of in their community.
 2. Provide developers with a tool to automatically detect community smells in their project. 
 
+## By stand-alone executable file under windows
+
+- Works with Python 3.5—3.9. 
+- Open the executable file in command prompt.
+- run c:\tool_path\dist\devNetwork\ devNetwork.exe with the right parametres see the [Running](#Running) section.
+
+## By the Nomal Way
+
 ## Stack
 - Windows 10
 - VSCode 1.45.1
