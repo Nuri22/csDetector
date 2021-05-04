@@ -24,7 +24,7 @@ def smellDetection(config: Configuration, batchIdx: int):
     metrics = buildMetricsList(results)
 
     # load all models
-    smells = ["OSE", "BCE", "PDE", "SV", "OS", "SD", "RS", "TF", "UI", "UO", "IS"]
+    smells = ["OSE", "BCE", "PDE", "SV", "OS", "SD", "RS", "TF", "UI", "TC"]
     all_models = {}
     for smell in smells:
         modelPath = os.path.abspath("./models/{}.joblib".format(smell))
