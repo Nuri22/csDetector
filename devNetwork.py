@@ -21,10 +21,6 @@ from smellDetection import smellDetection
 from politenessAnalysis import politenessAnalysis
 from dateutil.relativedelta import relativedelta
 
-import warnings
-import matplotlib.cbook
-warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
-
 FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
 
 
@@ -102,8 +98,6 @@ def main(argv):
             senti, commits, delta, config
         )
 
-        if len(batchDates) == 0:
-            return
         tagAnalysis(repo, delta, batchDates, daysActive, config)
 
         coreDevs = centrality.centralityAnalysis(commits, delta, batchDates, config)
