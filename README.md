@@ -7,13 +7,16 @@ The purpose of this tool is twofold:
 1. Contribute to the list of existing community smells that developers need to be aware of in their community.
 2. Provide developers with a tool to automatically detect community smells in their project. 
 
-## By stand-alone executable file under windows
+## There are two ways to run the tool: 
 
-- Works with Python 3.5—3.9. 
-- Open the executable file in command prompt.
-- run c:\tool_path\dist\devNetwork\ devNetwork.exe with the right parametres see the [Running](#Running) section.
+## 1) By stand-alone executable file under windows:
+- Windows 10
+- Python 3.8.3
+- Java 8.0.231 
+- Open the folder that contains the executable file “devNetwork.exe” in command prompt "c:\tool_path\dist\devNetwork\".
+- run devNetwork.exe with the right parametres see the [Running](#Running) section.
 
-## By the Nomal Way
+## 2) By the default Way:
 
 ## Stack
 - Windows 10
@@ -41,11 +44,12 @@ The tool requires ConvoKit to be installed correctly. See the [references](#refe
 If you followed the recommended installation approach, the virtual environment **must be activated** prior to running the tool! Run the proper to your environment activation script inside the **.venv/Scripts** folder.
 
 To run the tool you need run **devNetwork.py** with the right parameters. Pass the **--help** parameter to view the documentation. For example:
-- (-p) for "GitHub PAT (personal access token) used for querying the GitHub API" 
-- (-g) for "Google Cloud API Key used for authentication with the Perspective API" 
-- (-r) for "GitHub repository URL that you want to analyse" 
+- (-p) for "GitHub PAT (personal access token) used for querying the GitHub API". 
+- **Optional**(-g) for "Google Cloud API Key used for authentication with the Perspective API". 
+- (-r) for "GitHub repository URL that you want to analyse". 
 - (-s) for  "local directory path to the SentiStregth tool" See the [references](#references) section. 
-- (-o) for "Local directory path for analysis output"
+- (-o) for "Local directory path for analysis output".
+- **Optional**(-sd) for “The desired date to start analyzing a project  YYYY-MM-DD”.
 ## Configuration File
 
 #### aliasSimilarityMaxDistance (float)
@@ -62,10 +66,11 @@ To generate author aliases, run **authorAliasExtractor.py** with the right param
 - GitHub GraphQL API Explorer  
 https://docs.github.com/en/graphql/overview/explorer
 
--  The files of sentistrength tool are available here: 
+-  The files of sentistrength tool are "SentiStrength_Data.zip & SentiStrength.jar" and available on: 
     http://sentistrength.wlv.ac.uk/jkpop/ 
 	 - You need to extrcat the SentiStrength_Data.zip folder.
 	 - You need to install Java in your local device to work with SentiStrength.jar file.
+	 - (-s) parameter for "local directory path to the folder that contains these two files"
 
 - ConvoKit
   - Setup  
