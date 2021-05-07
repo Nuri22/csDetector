@@ -11,8 +11,7 @@ The purpose of this tool is twofold:
  ## Video Demo
  
  
- [![Demo ](https://youtu.be/AarXmePrEXA)]
-
+ [![Demo ](https://youtu.be/AarXmePrEXA)](https://youtu.be/AarXmePrEXA)
 
 ## There are two ways to run the tool: 
 
