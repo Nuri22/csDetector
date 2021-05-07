@@ -10,10 +10,8 @@ The purpose of this tool is twofold:
 
  ## Video Demo
  
+ [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/AarXmePrEXA/0.jpg)](https://www.youtube.com/watch?v=AarXmePrEXA&&ab_channel=Nurialmarimi)
  
- [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/E9HPErvT3Sw/0.jpg)](https://www.youtube.com/watch?v=AarXmePrEXA)
- 
-
 ## There are two ways to run the tool: 
 
 ## 1) By stand-alone executable file under windows:
