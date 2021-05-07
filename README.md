@@ -10,8 +10,9 @@ The purpose of this tool is twofold:
 
  ## Video Demo
  
- https://youtu.be/AarXmePrEXA
  
+ [![Demo ](https://youtu.be/AarXmePrEXA)]
+
 
 ## There are two ways to run the tool: 
 
@@ -22,7 +23,7 @@ The purpose of this tool is twofold:
 - Open the folder that contains the executable file “devNetwork.exe” in command prompt "c:\tool_path\dist\devNetwork\".
 - run devNetwork.exe with the right parametres see the [Running](#Running) section.
 
-## 2) By the default Way:
+## 2) By the command line:
 
 ## Stack
 - Windows 10
