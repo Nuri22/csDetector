@@ -5,7 +5,13 @@
 The purpose of this tool is twofold:
 
 1. Contribute to the list of existing community smells that developers need to be aware of in their community.
-2. Provide developers with a tool to automatically detect community smells in their project. 
+2. Provide developers with a tool to automatically detect community smells in their project.
+
+
+ ## Video Demo
+ 
+ https://youtu.be/2ksDOqHnW5I
+ 
 
 ## There are two ways to run the tool: 
 
