@@ -85,16 +85,14 @@ https://docs.github.com/en/graphql/overview/explorer
   https://github.com/CornellNLP/Cornell-Conversational-Analysis-Toolkit/blob/master/examples/politeness-strategies/Politeness%20Marker%20and%20Summarize%20Demo.ipynb
 
 
-
-
 ### Community Smells Definitions: 
 
 
-``` {Organizational Silo Effect (OSE)```: This refers to the presence of isolated subgroups, and lack of communication and collaboration between community developers. As a result, this smell cause an extra unforeseen cost to a project by wasted resources (e.g., time), as well as duplication of code.
+``` Organizational Silo Effect (OSE)```: This refers to the presence of isolated subgroups, and lack of communication and collaboration between community developers. As a result, this smell cause an extra unforeseen cost to a project by wasted resources (e.g., time), as well as duplication of code.
 
 ```Black-cloud Effect (BCE)``` : This reflects an information overload due to lack of structured communications due to limited knowledge sharing opportunities (e.g., collaborations, discussions, daily stand-ups, etc.), as well as a lack of expert members in the project that are able to cover the experience or knowledge gap of a community.
 
-```{Prima-donnas Effect (PDE)``` : This smell appears when a team of people is unwilling to respect external changes from other team members due to inefficiently structured collaboration within a community.
+```Prima-donnas Effect (PDE)``` : This smell appears when a team of people is unwilling to respect external changes from other team members due to inefficiently structured collaboration within a community.
 
 ```Sharing Villainy (SV)``` : This smell is caused by a lack of high-quality information exchange activities (e.g., face-to-face meetings). The main side effect of this smell limitation is that community members share essential knowledge such as outdated, wrong and unconfirmed information.
 
