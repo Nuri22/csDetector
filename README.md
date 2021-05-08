@@ -85,6 +85,32 @@ https://docs.github.com/en/graphql/overview/explorer
   https://github.com/CornellNLP/Cornell-Conversational-Analysis-Toolkit/blob/master/examples/politeness-strategies/Politeness%20Marker%20and%20Summarize%20Demo.ipynb
 
 
+
+
+### Community Smells Definitions: 
+
+
+``` {Organizational Silo Effect (OSE)```: This refers to the presence of isolated subgroups, and lack of communication and collaboration between community developers. As a result, this smell cause an extra unforeseen cost to a project by wasted resources (e.g., time), as well as duplication of code.
+
+```Black-cloud Effect (BCE)``` : This reflects an information overload due to lack of structured communications due to limited knowledge sharing opportunities (e.g., collaborations, discussions, daily stand-ups, etc.), as well as a lack of expert members in the project that are able to cover the experience or knowledge gap of a community.
+
+```{Prima-donnas Effect (PDE)``` : This smell appears when a team of people is unwilling to respect external changes from other team members due to inefficiently structured collaboration within a community.
+
+```Sharing Villainy (SV)``` : This smell is caused by a lack of high-quality information exchange activities (e.g., face-to-face meetings). The main side effect of this smell limitation is that community members share essential knowledge such as outdated, wrong and unconfirmed information.
+
+```Organizational Skirmish (OS) ```: The OS is caused by a misalignment between different expertise levels and communication channels among development units or individuals involved in the project. The existence of this smell leads often to dropped productivity and affect the project's timeline and cost.
+
+```Solution Defiance (SD)``` : The solution defiance smell occurs when the development community presents different levels of cultural and experience background, and these variances lead to the division of the community into similar subgroups with completely conflicting opinions concerning technical or socio-technical  decisions to be taken. The existence of the SD often leads to unexpected project delays and uncooperative behaviors among the developers.
+
+```Radio Silence (RS)``` : The ratio silence smell occurs when a high formality of regular procedures takes place due to the inefficient structural organization of a community. The RS community smell typically causes changes to be retarded, as well as a valuable time to be lost due to complex and rigid formal procedures.  The main effect of this smell is an unexpected massive delay in the decision-making process due to the required formal actions needed.
+
+```Truck Factor Smell(TFS)``` : The truck factor smell occurs when most of the project information and knowledge are concentrated in one or few developers. The presence of this smell eventually leads to a significant knowledge loss due to the turnover of developers.
+
+```Unhealthy Interaction (UI)``` :  This smell occurs when discussions between developers are slow, light, brief and/or contains poor conversations. It manifests with low developers participation in the project discussions (e.g., pull requests, issues, etc.) having long delays between messages communications.
+
+```Toxic Communication (TC)``` : This smell occurs when communications between developers are subject to toxic conversations and negative sentiments containing unpleasant, anger or even conflicting opinions towards various issues that people discuss. Developers may have negative interpersonal interactions with their peers, which can lead to frustration and stress. These negative interactions may ultimately result in developers abandoning projects.
+
+
 ### Metrics definitions
 
 #### Developer Contributions metrics  
@@ -210,5 +236,3 @@ https://docs.github.com/en/graphql/overview/explorer
 ```RAWI``` : Ratio of anger words in PR discussions.
 
 ```ACCL``` : Average Communication Comments Length.
-
-
