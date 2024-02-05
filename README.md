@@ -234,3 +234,14 @@ https://docs.github.com/en/graphql/overview/explorer
 ```RAWI``` : Ratio of anger words in PR discussions.
 
 ```ACCL``` : Average Communication Comments Length.
+
+##How to cite?
+
+Please, use the following bibtex entries:
+
+@article{AlmarimicsDetector2021,
+    title={csDetector: an open source tool for community smells detection.},
+    author={Almarimi, Nuri, Ali Ouni, Moataz Chouchen, and Mohamed Wiem Mkaouer.},
+    conference={ESEC/FSE},
+    year={2021},
+}
