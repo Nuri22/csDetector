@@ -235,7 +235,7 @@ https://docs.github.com/en/graphql/overview/explorer
 
 ```ACCL``` : Average Communication Comments Length.
 
-##How to cite?
+# How to cite?
 
 Please, use the following bibtex entries:
 
