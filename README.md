@@ -239,9 +239,13 @@ https://docs.github.com/en/graphql/overview/explorer
 
 Please, use the following bibtex entries:
 
-@article{AlmarimicsDetector2021,
-    title={csDetector: an open source tool for community smells detection.},
-    author={Almarimi, Nuri, Ali Ouni, Moataz Chouchen, and Mohamed Wiem Mkaouer.},
-    conference={ESEC/FSE},
-    year={2021},
+```tex
+@inproceedings{almarimi2021csdetector,
+  title={csDetector: an open source tool for community smells detection},
+  author={Almarimi, Nuri and Ouni, Ali and Chouchen, Moataz and Mkaouer, Mohamed Wiem},
+  booktitle={ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering},
+  pages={1560--1564},
+  year={2021}
 }
+
+```
