@@ -235,6 +235,11 @@ https://docs.github.com/en/graphql/overview/explorer
 
 ```ACCL``` : Average Communication Comments Length.
 
+
+## License
+
+Distributed under the MIT License. See the `[LICENSE](https://github.com/Nuri22/csDetector/blob/master/LICENSE)` file for more information.
+
 # How to cite?
 
 Please, use the following bibtex entries:
