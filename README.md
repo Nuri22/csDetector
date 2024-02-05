@@ -248,4 +248,14 @@ Please, use the following bibtex entries:
   year={2021}
 }
 
+@article{almarimi2023improving,
+  title={Improving the detection of community smells through socio-technical and sentiment analysis},
+  author={Almarimi, Nuri and Ouni, Ali and Chouchen, Moataz and Mkaouer, Mohamed Wiem},
+  journal={Journal of Software: Evolution and Process},
+  volume={35},
+  number={6},
+  pages={e2505},
+  year={2023},
+  publisher={Wiley Online Library}
+}
 ```
